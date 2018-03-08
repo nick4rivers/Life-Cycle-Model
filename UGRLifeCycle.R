@@ -1,14 +1,28 @@
 
 
-#Delete Later
-years <- 500
-runs <- 1
+#Build into input file later
+years <- 200
+runs <- 10
 population <- "CC"
+seed_fry <- 1000000
+seed_hatchery_smolt <- 150000
 
-#---------------READ IN THE INPUT FILE----------------------#
+
+#---------------READ IN THE INPUT FILES----------------------#
+#model inputs
 input <- read.csv(file.choose(), stringsAsFactors = FALSE)
 
-#Create constants array
+#model headers
+#---------------Establish Constants------------------------#
+
+#Supplementation goal based on population as total brood retention
+if (population == "CC") {
+  brood_goal = 102
+} else {
+  brood_goal = 170
+}
+
+#Create a big array of all constants from the input file
 for (i in 1:nrow(input)) {
   assign(paste("p_",input$Stage_Transition[i], sep=""), c(input$Productivity[i], input$Productivity_SD[i], input$Capacity[i], input$Capacity_SD[i], input$Transition[i], input$Transition_SD[i]))
 }
@@ -27,7 +41,9 @@ for (i in 1:length(stages)) {
 }
 
 #add years, reps and hatchery placeholder names
-stages <- c("Year", "Run", stages, my_hatch)
+stages <- c("Year", "Run", stages, my_hatch, "AllBrood")
+# Delete HatchRelease Element
+stages <- stages[stages != "HatchRelease"]
 rm(my_hatch)
 
 #Create a dataframe equal to years and columns needed
@@ -42,7 +58,8 @@ names(sims) <- stages
 # stage1_parms = array vector of parameters
 
 bev_holt <- function (stage1, stage1_parms) {
-  stage1/(((1/rnorm(1, mean = stage1_parms[1], sd = stage1_parms[2]))+((1/rnorm(1, mean = stage1_parms[3], sd = stage1_parms[4]))*stage1)))
+  stage1/(((1/abs(rnorm(1, mean = stage1_parms[1], sd = stage1_parms[2]))) + 
+             ((1/rnorm(1, mean = stage1_parms[3], sd = stage1_parms[4]))*stage1)))
 }
 
 ########################################
@@ -52,9 +69,11 @@ bev_holt <- function (stage1, stage1_parms) {
 #Loops for runs
 for (j in 1:runs) {
   sims$Run <- j
-  #Set Fry start at beginning of each run, note this will later be set at input file
-  sims$Fry[1] <- 10000
-
+  
+  #Seed the model
+  sims$Fry[1] <- seed_fry #wild
+  sims$H1_LGDSmolt[1] <- seed_hatchery_smolt #hatchery
+  
   #Loop for years 
   for (i in 1:years) {
     
@@ -62,193 +81,223 @@ for (j in 1:runs) {
     sims$Year[i] <- i
     
     ##########################################
-    #####       STARTs AT YEAR 5         #####
+    #####       WITHIN YEAR              #####
     ##########################################
     
-    #IN YEAR
-    #--------------LGD Adult 3 to Trap Adult 3----------------#   
-    if (i > 4) {
-      sims$TrapAdult3[i] <- bev_holt(sims$LGDAdult3[i], p_LGDAdult3_TrapAdult3)
-      #<<----HATCH----->>#
-      sims$H1_TrapAdult3[i] <- bev_holt(sims$H1_LGDAdult3[i], p_LGDAdult3_TrapAdult3)
-      }
-    
-    #--------------Trap Adult 3 to Spawner 3----------------#    
-    if (i > 4) {
-      sims$Spawner3[i] <- bev_holt(sims$TrapAdult3[i], p_TrapAdult3_Spawner3)
-      #<<----HATCH----->>#
-      sims$H1_Spawner3[i] <- bev_holt(sims$H1_TrapAdult3[i], p_TrapAdult3_Spawner3)
-      }
-    
-    #--------------Spawner 3 to Spawner Egg 3 ----------------#  
-    if (i > 4 ) {
-      sims$Spawner3Egg[i] <- bev_holt(sims$Spawner3[i], p_Spawner3_Spawner3Egg)
-      #<<----HATCH----->>#
-      sims$H1_Spawner3Egg[i] <- bev_holt(sims$H1_Spawner3[i], p_Spawner3_Spawner3Egg)
-      }
-    
-    ##########################################
-    #####       STARTs AT YEAR 4         #####
-    ##########################################
-    
-    #IN YEAR
-    #Age 2 adults return to spawn as 2s and produce eggs
-    #--------------LGD Adult 2 to Trap Adult 2----------------#    
-    if (i > 3) {
-      sims$TrapAdult2[i] <- bev_holt(sims$LGDAdult2[i], p_LGDAdult2_TrapAdult2)
-      #<<----HATCH----->>#
-      sims$H1_TrapAdult2[i] <- bev_holt(sims$H1_LGDAdult2[i], p_LGDAdult2_TrapAdult2)
-      }
-
-    
-    #--------------Trap Adult 2 to Spawner 2----------------#    
-    if (i > 3) {
-      sims$Spawner2[i] <- bev_holt(sims$TrapAdult2[i], p_TrapAdult2_Spawner2)
-      #<<----HATCH----->>#
-      sims$H1_Spawner2[i] <- bev_holt(sims$H1_TrapAdult2[i], p_TrapAdult2_Spawner2)
-      
-      }
-    
-    #--------------Spawner 2 to Spawner Egg 2 ----------------#  
-    if (i > 3 ) {
-      sims$Spawner2Egg[i] <- bev_holt(sims$Spawner2[i], p_Spawner2_Spawner2Egg)
-      #<<----HATCH----->>#
-      sims$H1_Spawner2Egg[i] <- bev_holt(sims$H1_Spawner2[i], p_Spawner2_Spawner2Egg)
-      
-      }
-    
-    #ADD YEAR
-    #--------------Ocean Adult 2 to   LGD Adult 3----------------#
-    if (i > 3 & i < years) {
-      sims$LGDAdult3[i+1] <- bev_holt((sims$OceanAdult2[i] * p_OceanAdult2_LGDAdult3[5]), p_OceanAdult2_LGDAdult3)
-      #<<----HATCH----->>#
-      sims$H1_LGDAdult3[i+1] <- bev_holt((sims$H1_OceanAdult2[i] * p_OceanAdult2_LGDAdult3[5]), p_OceanAdult2_LGDAdult3)
-      
-      }
-    
-    ##########################################
-    #####       STARTs AT YEAR 3         #####
-    ##########################################
-    
-    #IN YEAR
-    #--------------LGD Adult 1 to Trap Adult 1----------------#    
-    if (i > 2) {
-     sims$TrapAdult1[i] <- bev_holt(sims$LGDAdult1[i], p_LGDAdult1_TrapAdult1)
-     #<<----HATCH----->>#
-     sims$H1_TrapAdult1[i] <- bev_holt(sims$H1_LGDAdult1[i], p_LGDAdult1_TrapAdult1)
-    }
-    
-    #--------------Trap Adult 1  to Spawner 1----------------#    
-    if (i > 2) {
-      sims$Spawner1[i] <- bev_holt(sims$TrapAdult1[i], p_TrapAdult1_Spawner1)
-      #<<----HATCH----->>#
-      sims$H1_Spawner1[i] <- bev_holt(sims$H1_TrapAdult1[i], p_TrapAdult1_Spawner1)
-    }
-    
-    #--------------Spawner 1 to Spawner Egg 1 ----------------#  
-    if (i > 2 ) {
-      sims$Spawner1Egg[i] <- bev_holt(sims$Spawner1[i], p_Spawner1_Spawner1Egg)
-      #<<----HATCH----->>#
-      sims$H1_Spawner1Egg[i] <- bev_holt(sims$H1_Spawner1[i], p_Spawner1_Spawner1Egg)
-    }
-    
-    #-------------- Sum Eggs ----------------#
-    #Note this is where H1 is Wild Again!!!!!
-    if (i > 2 ) {
-      sims$Egg[i] <- sims$Spawner1Egg[i] + sims$Spawner2Egg[i]+ sims$Spawner3Egg[i] + sims$H1_Spawner1Egg[i] + sims$H1_Spawner2Egg[i]+ sims$H1_Spawner3Egg[i]
-    }
-   
-    #-------------- Sum Spawners ----------------#  
-    if (i > 2 ) {
-      sims$TotalSpawners[i] <- sims$Spawner1[i] + sims$Spawner2[i]+ sims$Spawner3[i]
-      #<<----HATCH----->>#
-      sims$H1_TotalSpawners[i] <- sims$H1_Spawner1[i] + sims$H1_Spawner2[i]+ sims$H1_Spawner3[i]
-    }
-   
-    #ADD YEAR
-    #--------------Ocean Adult 1 to Ocean Adult 2----------------#
-    if (i > 2 & i < years) {
-      sims$OceanAdult2[i+1] <- bev_holt((sims$OceanAdult1[i] * p_OceanAdult1_OceanAdult2[5]), p_OceanAdult1_OceanAdult2)
-      #<<----HATCH----->>#
-      sims$H1_OceanAdult2[i+1] <- bev_holt((sims$H1_OceanAdult1[i] * p_OceanAdult1_OceanAdult2[5]), p_OceanAdult1_OceanAdult2)
-    }
-    
-    #--------------Ocean Adult 1 to   LGD Adult 2----------------#
-    if (i > 2 & i < years) {
-      sims$LGDAdult2[i+1] <- bev_holt((sims$OceanAdult1[i] * p_OceanAdult1_LGDAdult2[5]), p_OceanAdult1_LGDAdult2)
-      #<<----HATCH----->>#
-      sims$H1_LGDAdult2[i+1] <- bev_holt((sims$H1_OceanAdult1[i] * p_OceanAdult1_LGDAdult2[5]), p_OceanAdult1_LGDAdult2)
-    }
-    
-    #--------------Egg to Fry----------------#
-    #Note, there's no such thing as a hatchery egg, all eggs are wild
-    if (i > 2 & i < years) {
-      sims$Fry[i+1] <- bev_holt(sims$Egg[i], p_Egg_Fry)
-    }
-    
-    ##########################################
-    #####       STARTs AT YEAR 2         #####
-    ##########################################
-    
-    #IN YEAR
-    #--------------Pre Smolts to LGD Smolts----------------#
-    #Total smolts at LGD as sum of headwaters and valley pre-smolts
-    if (i > 1) {
-      sims$LGDSmolt[i] <- 
-        (bev_holt(sims$PreSmoltHeadwaters[i], p_PreSmoltHeadwaters_LGDSmolt)
-         +
-        bev_holt(sims$PreSmoltValley[i], p_PreSmoltValley_LGDSmolt))
-      #<<----HATCH----->>#
-      sims$H1_LGDSmolt[i] <- bev_holt(sims$H1_PreSmoltValley[i], p_PreSmoltValley_LGDSmolt)
-      }
- 
-    #ADD YEAR
-    #--------------LGD Smolts to LGD Adults 1----------------#
-    #LGDsmolts * maturation probability
-    if (i > 1 & i < years) {
-      sims$LGDAdult1[i + 1] <-  bev_holt((sims$LGDSmolt[i] * p_LGDSmolt_LGDAdult1[5]), p_LGDSmolt_LGDAdult1)
-      #<<----HATCH----->>#  
-      sims$H1_LGDAdult1[i + 1] <-  bev_holt((sims$H1_LGDSmolt[i] * p_LGDSmolt_LGDAdult1[5]), p_LGDSmolt_LGDAdult1)
-      }
-  
-    #--------------LGD Smolts to Ocean Adults 1----------------#
-    #LGDsmolts * stay in ocean probability
-    if (i > 1 & i < years) {
-      sims$OceanAdult1[i + 1] <-  bev_holt((sims$LGDSmolt[i] * p_LGDSmolt_OceanAdult1[5]), p_LGDSmolt_OceanAdult1)
-      #<<----HATCH----->>#
-      sims$H1_OceanAdult1[i + 1] <-  bev_holt((sims$H1_LGDSmolt[i] * p_LGDSmolt_OceanAdult1[5]), p_LGDSmolt_OceanAdult1)
-      }
-    
-    ##########################################
-    #####       STARTs AT YEAR 1         #####
-    ##########################################
-    
-    #IN YEAR
+    ##########FRY AND PARR###################
     #--------------FRY TO PARR----------------#
     # There's no such thing as a hatchery Fry, they all became wild as eggs! 
     sims$Parr[i] <- bev_holt(sims$Fry[i], p_Fry_Parr)
-  
-    #ADD YEAR
-    #--------------PARR TO PRE SMOLTS----------------#
-    #Note no Survival Here - they just move
-    if (i < years) {
+    
+    #--------------Pre Smolts to LGD Smolts----------------#
+    #Total smolts at LGD as sum of headwaters and valley pre-smolts after survival to LGD
+    sims$LGDSmolt[i] <- 
+      (bev_holt(sims$PreSmoltHeadwaters[i], p_PreSmoltHeadwaters_LGDSmolt)
+       +
+         bev_holt(sims$PreSmoltValley[i], p_PreSmoltValley_LGDSmolt))
+    #<<----HATCH----->>#
+    #Hatchery releases to LGD smolt
+    sims$H1_LGDSmolt[i] <- bev_holt(sims$H1_HatchRelease[i], p_HatchRelease_LGDSmolt)
+    
+
+    #######RETURNING ADULTS###########
+    #--------------LGD Adult 1 to Trap Adult 1----------------#    
+    sims$TrapAdult1[i] <- bev_holt(sims$LGDAdult1[i], p_LGDAdult1_TrapAdult1)
+    #<<----HATCH----->>#
+    sims$H1_TrapAdult1[i] <- bev_holt(sims$H1_LGDAdult1[i], p_LGDAdult1_TrapAdult1)
+    
+    #--------------Trap Adult 1  to Spawner 1----------------#    
+    sims$Spawner1[i] <- bev_holt(sims$TrapAdult1[i], p_TrapAdult1_Spawner1)
+    #<<----HATCH----->>#
+    sims$H1_Spawner1[i] <- bev_holt(sims$H1_TrapAdult1[i], p_TrapAdult1_Spawner1)
+    
+    #--------------LGD Adult 2 to Trap Adult 2----------------#    
+    sims$TrapAdult2[i] <- bev_holt(sims$LGDAdult2[i], p_LGDAdult2_TrapAdult2)
+    #<<----HATCH----->>#
+    sims$H1_TrapAdult2[i] <- bev_holt(sims$H1_LGDAdult2[i], p_LGDAdult2_TrapAdult2)
+    
+    #--------------Trap Adult 2 to Spawner 2----------------#    
+    sims$Spawner2[i] <- bev_holt(sims$TrapAdult2[i], p_TrapAdult2_Spawner2)
+    #<<----HATCH----->>#
+    sims$H1_Spawner2[i] <- bev_holt(sims$H1_TrapAdult2[i], p_TrapAdult2_Spawner2)
+    
+    #--------------LGD Adult 3 to Trap Adult 3----------------#   
+    sims$TrapAdult3[i] <- bev_holt(sims$LGDAdult3[i], p_LGDAdult3_TrapAdult3)
+    #<<----HATCH----->>#
+    sims$H1_TrapAdult3[i] <- bev_holt(sims$H1_LGDAdult3[i], p_LGDAdult3_TrapAdult3)
+    
+    #--------------Trap Adult 3 to Spawner 3----------------#    
+    sims$Spawner3[i] <- bev_holt(sims$TrapAdult3[i], p_TrapAdult3_Spawner3)
+    #<<----HATCH----->>#
+    sims$H1_Spawner3[i] <- bev_holt(sims$H1_TrapAdult3[i], p_TrapAdult3_Spawner3)
+    
+    #-------------- Sum Spawners Before Supplementation---------#
+    sims$TotalSpawners[i] <- sims$Spawner1[i] + sims$Spawner2[i]+ sims$Spawner3[i]
+    #<<----HATCH----->>#
+    sims$H1_TotalSpawners[i] <- sims$H1_Spawner1[i] + sims$H1_Spawner2[i]+ sims$H1_Spawner3[i]
+    
+    
+    ############### SUPPLEMENTATION SCHEME ######################
+    
+    #Set target for wild fish retention
+    #Check total potential spawners wild + hatchery to set tier
+    if ((sims$TotalSpawners[i] + sims$H1_TotalSpawners[i]) < 250) {
+      wild_target <- 0.4 * brood_goal #Low Tier
+    } else if ((sims$TotalSpawners[i] + sims$H1_TotalSpawners[i]) > 500) {
+      wild_target <- 0.1 * brood_goal #High Tier
+    } else {
+      wild_target <- 0.2 * brood_goal #Middle Tier
+    }
+    
+    #-------RESCALE WILD SPAWNERS------------#
+    #Rescale spawners at each year where you can, just don't take if not enough
+    if (sims$Spawner1[i] > (wild_target*0.2)) {
+      sims$Brood1[i] <- (wild_target*0.2)
+      sims$Spawner1[i] <- sims$Spawner1[i] - sims$Brood1[i]
+    } else { #Take them all
+      sims$Brood1[i] <- sims$Spawner1[i]
+      sims$Spawner1[i] <- 0
+    }
+    
+    if (sims$Spawner2[i] > (wild_target*0.80)) {
+      sims$Brood2[i] <- (wild_target*0.80)
+      sims$Spawner2[i] <- sims$Spawner2[i] - sims$Brood2[i]
+    }  else { #Take them all
+      sims$Brood2[i] <- sims$Spawner2[i]
+      sims$Spawner2[i] <- 0
+    }
+    
+    if (sims$Spawner3[i] > (wild_target*0.00)) {
+      sims$Brood3[i] <- (wild_target*0.00)
+      sims$Spawner3[i] <- sims$Spawner3[i] - sims$Brood3[i]
+    }  else { #Take them all
+      sims$Brood3[i] <- sims$Spawner3[i]
+      sims$Spawner3[i] <- 0
+    }
+    
+    #Set TotalBrood based on wild retained at each year class
+    sims$TotalBrood[i] <- sims$Brood1[i] + sims$Brood2[i] + sims$Brood3[i]
+    
+    #Calculate hatchery needed to reach brood goal given wild retained
+    hatchery_target <- brood_goal - sims$TotalBrood[i]
+    
+    #Try to take a bunch, or take them all
+    if (sims$H1_Spawner1[i] > (hatchery_target*0.2)) {
+      sims$H1_Brood1[i] <- (hatchery_target*0.2)
+      sims$H1_Spawner1[i] <- sims$H1_Spawner1[i] - sims$H1_Brood1[i]
+    } else {
+      sims$H1_Brood1[i] <- sims$H1_Spawner1[i]
+      sims$H1_Spawner1[i] <- 0
+    }
+    
+    if (sims$H1_Spawner2[i] > (hatchery_target*0.80)) {
+      sims$H1_Brood2[i] <- (hatchery_target*0.80)
+      sims$H1_Spawner2[i] <- sims$H1_Spawner2[i] - sims$H1_Brood2[i]
+    } else {
+      sims$H1_Brood2[i] <- sims$H1_Spawner2[i]
+      sims$H1_Spawner2[i] <- 0
+    }
+    
+    #Always pass 3's
+    if (sims$H1_Spawner3[i] > (hatchery_target*0.00)) {
+      sims$H1_Brood3[i] <- (hatchery_target*0.00)
+      sims$H1_Spawner3[i] <- sims$H1_Spawner3[i] - sims$H1_Brood3[i]
+    } else {
+      sims$H1_Brood3[i] <- sims$H1_Spawner3[i]
+      sims$H1_Spawner3[i] <- 0
+    }
+    
+    #Set H1 Brood
+    sims$H1_TotalBrood[i] <- sims$H1_Brood1[i] + sims$H1_Brood2[i] + sims$H1_Brood3[i]
+    
+    #Set All Brood Retained, these will produce smolts for year + 2
+    sims$AllBrood[i] <- sims$TotalBrood[i] + sims$H1_TotalBrood[i]
+    
+    ##################### END SUPPLEMENTATION SCHEME ########################
+    #-------------- Sum Spawners After Supplementation-------#  
+    sims$TotalSpawners[i] <- sims$Spawner1[i] + sims$Spawner2[i]+ sims$Spawner3[i]
+    #<<----HATCH----->>#
+    sims$H1_TotalSpawners[i] <- sims$H1_Spawner1[i] + sims$H1_Spawner2[i]+ sims$H1_Spawner3[i]
+    
+    #########SPAWNER AND EGGS###########
+    #--------------Spawner 1 to Spawner Egg 1 ----------------#  
+    sims$Spawner1Egg[i] <- 0.5 * bev_holt(sims$Spawner1[i], p_Spawner1_Spawner1Egg)
+    #<<----HATCH----->>#
+    sims$H1_Spawner1Egg[i] <- 0.5 * bev_holt(sims$H1_Spawner1[i], p_Spawner1_Spawner1Egg)
+    
+    #--------------Spawner 2 to Spawner Egg 2 ----------------#  
+    sims$Spawner2Egg[i] <- 0.5 * bev_holt(sims$Spawner2[i], p_Spawner2_Spawner2Egg)
+    #<<----HATCH----->>#
+    sims$H1_Spawner2Egg[i] <- 0.5 * bev_holt(sims$H1_Spawner2[i], p_Spawner2_Spawner2Egg)
+    
+    #--------------Spawner 3 to Spawner Egg 3 ----------------#  
+    sims$Spawner3Egg[i] <- 0.5 * bev_holt(sims$Spawner3[i], p_Spawner3_Spawner3Egg)
+    #<<----HATCH----->>#
+    sims$H1_Spawner3Egg[i] <- 0.5 * bev_holt(sims$H1_Spawner3[i], p_Spawner3_Spawner3Egg)
+    
+    #-------------- Sum Eggs ----------------#
+    #Note this is where H1 is Wild Again!!!!!
+    #All works on rescaled after brood retention.
+    sims$Egg[i] <- sims$Spawner1Egg[i] + sims$Spawner2Egg[i]+ sims$Spawner3Egg[i] + sims$H1_Spawner1Egg[i] + sims$H1_Spawner2Egg[i]+ sims$H1_Spawner3Egg[i]
+    
+    ##########################################
+    #####       NEXT YEAR                #####
+    ##########################################
+    if (i < years) { #Don't do on final year
+    
+      #########EGGS TO FRY###########
+      #Note, there's no such thing as a hatchery egg, all eggs are wild
+      sims$Fry[i+1] <- bev_holt(sims$Egg[i], p_Egg_Fry)
+      
+      #########PARR AND PRESMOLT###########
+      #--------------PARR TO PRE SMOLTS----------------#
+      #Note no Survival Here - they just move
       sims$PreSmoltHeadwaters[i + 1] <- sims$Parr[i] * p_Parr_PreSmoltHeadwaters[5]
       sims$PreSmoltValley[i + 1] <- sims$Parr[i] * p_Parr_PreSmoltValley[5]
     
+      #########OCEAN ADULTS###########
+      #--------------LGD Smolts to LGD Adults 1----------------#
+      #LGDsmolts * maturation probability
+      sims$LGDAdult1[i + 1] <-  bev_holt((sims$LGDSmolt[i] * p_LGDSmolt_LGDAdult1[5]), p_LGDSmolt_LGDAdult1)
+      #<<----HATCH----->>#  
+      sims$H1_LGDAdult1[i + 1] <-  bev_holt((sims$H1_LGDSmolt[i] * p_LGDSmolt_LGDAdult1[5]), p_LGDSmolt_LGDAdult1)
+      
+      #--------------LGD Smolts to Ocean Adults 1----------------#
+      #LGDsmolts * stay in ocean probability
+      sims$OceanAdult1[i + 1] <-  bev_holt((sims$LGDSmolt[i] * p_LGDSmolt_OceanAdult1[5]), p_LGDSmolt_OceanAdult1)
       #<<----HATCH----->>#
-      if (population == "CC") {
-        sims$H1_PreSmoltValley[i + 1] <- 100
-      } else {
-        sims$H1_PreSmoltValley[i + 1] <- 100
-      }
+      sims$H1_OceanAdult1[i + 1] <-  bev_holt((sims$H1_LGDSmolt[i] * p_LGDSmolt_OceanAdult1[5]), p_LGDSmolt_OceanAdult1)
+      
+      #--------------Ocean Adult 1 to Ocean Adult 2----------------#
+      sims$OceanAdult2[i+1] <- bev_holt((sims$OceanAdult1[i] * p_OceanAdult1_OceanAdult2[5]), p_OceanAdult1_OceanAdult2)
+      #<<----HATCH----->>#
+      sims$H1_OceanAdult2[i+1] <- bev_holt((sims$H1_OceanAdult1[i] * p_OceanAdult1_OceanAdult2[5]), p_OceanAdult1_OceanAdult2)
+      
+      #--------------Ocean Adult 1 to   LGD Adult 2----------------#
+      sims$LGDAdult2[i+1] <- bev_holt((sims$OceanAdult1[i] * p_OceanAdult1_LGDAdult2[5]), p_OceanAdult1_LGDAdult2)
+      #<<----HATCH----->>#
+      sims$H1_LGDAdult2[i+1] <- bev_holt((sims$H1_OceanAdult1[i] * p_OceanAdult1_LGDAdult2[5]), p_OceanAdult1_LGDAdult2)
+      
+      #--------------Ocean Adult 2 to   LGD Adult 3----------------#
+      sims$LGDAdult3[i+1] <- bev_holt((sims$OceanAdult2[i] * p_OceanAdult2_LGDAdult3[5]), p_OceanAdult2_LGDAdult3)
+      #<<----HATCH----->>#
+      sims$H1_LGDAdult3[i+1] <- bev_holt((sims$H1_OceanAdult2[i] * p_OceanAdult2_LGDAdult3[5]), p_OceanAdult2_LGDAdult3)
+  
+    } #END YEAR TRANSITIONS
+    
+    ##########################################
+    #####       TWO  YEARs                #####
+    ##########################################
+    # This is just populating HatchRelease from AllBrood
+    if (i < years -1) { #Don't do in final two years
+      #Dump hatchery fish into valley
+      sims$H1_HatchRelease[i + 2] <- sims$AllBrood[i] * 1470 #PreSmolts per brooder 
     }
     
-    #Print each year iteration
-    print(i)
+  #Print each year
+  print(paste("Year", i))
   }
-  
-  #End year Loops
-
+  #-----------------------------End year Loops------------------------------#
   #New dataframe on first run, append on successive runs
     if (j == 1) {
     final <- sims
@@ -257,11 +306,25 @@ for (j in 1:runs) {
   }
   
   #Print on each run
-  print(paste("Run", j, "was super sweet"))
+  print(paste("Run", j, "was super fuckin sweet"))
 }
 
+
+#Some quick graphs of single simulation
 library(tidyverse)
 
 ggplot(sims, aes(x = Year, y = LGDSmolt)) +
   geom_line()
 
+ggplot(sims, aes(x = Year, y = TotalSpawners)) +
+  geom_line()
+
+ggplot(sims, aes(x = Year, y = H1_TotalSpawners)) +
+  geom_line()
+
+ggplot(sims, aes(x = Year, y = Parr)) +
+  geom_line()
+
+#write out a single summarization
+#change to your directory of choice
+write.csv(sims, file="/Users/nick/Desktop/TestOutput.csv")
