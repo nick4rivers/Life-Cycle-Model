@@ -1,8 +1,11 @@
 
 
+library(tidyverse)
+
+
 #Build into input file later
-years <- 200
-runs <- 10
+years <- 70
+runs <- 200
 population <- "CC"
 seed_fry <- 1000000
 seed_hatchery_smolt <- 150000
@@ -136,9 +139,8 @@ for (j in 1:runs) {
     #<<----HATCH----->>#
     sims$H1_TotalSpawners[i] <- sims$H1_Spawner1[i] + sims$H1_Spawner2[i]+ sims$H1_Spawner3[i]
     
-    
+    if (i < 50) {
     ############### SUPPLEMENTATION SCHEME ######################
-    
     #Set target for wild fish retention
     #Check total potential spawners wild + hatchery to set tier
     if ((sims$TotalSpawners[i] + sims$H1_TotalSpawners[i]) < 250) {
@@ -175,6 +177,7 @@ for (j in 1:runs) {
       sims$Spawner3[i] <- 0
     }
     
+ 
     #Set TotalBrood based on wild retained at each year class
     sims$TotalBrood[i] <- sims$Brood1[i] + sims$Brood2[i] + sims$Brood3[i]
     
@@ -213,6 +216,7 @@ for (j in 1:runs) {
     #Set All Brood Retained, these will produce smolts for year + 2
     sims$AllBrood[i] <- sims$TotalBrood[i] + sims$H1_TotalBrood[i]
     
+    } # SUP STOP
     ##################### END SUPPLEMENTATION SCHEME ########################
     #-------------- Sum Spawners After Supplementation-------#  
     sims$TotalSpawners[i] <- sims$Spawner1[i] + sims$Spawner2[i]+ sims$Spawner3[i]
@@ -310,8 +314,6 @@ for (j in 1:runs) {
 }
 
 
-#Some quick graphs of single simulation
-library(tidyverse)
 
 ggplot(sims, aes(x = Year, y = LGDSmolt)) +
   geom_line()
