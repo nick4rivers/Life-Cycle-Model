@@ -6,12 +6,11 @@ library(VGAM) # postive only normal distribution function
 
 
 #Build into input file later
-years <- 100
-runs <- 300
+years <- 55
+runs <- 200
 population <- "CC"
 seed_fry <- 1000000
 seed_hatchery_smolt <- 150000
-
 
 #---------------READ IN THE INPUT FILES----------------------#
 #model inputs
@@ -38,7 +37,7 @@ stages <- unique(input$Stage1)
 
 
 #Add accounting stages we are missing
-stages <- c(stages,  "Brood")
+stages <- c(stages,  "LGDAdult1","LGDAdult2","LGDAdult3", "Brood")
 
 #create hatchery stages
 my_hatch <- c()
@@ -114,7 +113,7 @@ for (j in 1:runs) {
     
     ############### SUPPLEMENTATION SCHEME ###################
     
-    if (i < 70) { # Turn off hatchery supplementation in givene year
+    if (i < 40) { # Turn off hatchery supplementation in givene year
       
       #Set target for wild fish retention
       #Check spawners returning to the trap
@@ -252,5 +251,36 @@ for (j in 1:runs) {
 #write out a single summarization
 #change to your directory of choice
 write.csv(sims, file="/Users/nick/Desktop/TestOutput.csv")
+
+
+
+
+##########################################
+#####   Summary and Graphics         #####
+##########################################
+
+
+
+# Ribbon plot
+
+ribbon <- final %>%
+  select(Year, Run, Spawner, Parr) %>%
+  group_by(Year) %>%
+  summarise(
+    SpawnerMin = min(Spawner),
+    SpawnerMax = max(Spawner),
+    SpawnerMed = median(Spawner),
+    Spawner25 = quantile(Spawner, 0.25),
+    Spawner75 = quantile(Spawner, 0.75)
+  )
+
+
+# Ribbon plot
+ggplot(ribbon) +
+  geom_ribbon(aes(x = Year, ymin = SpawnerMin, ymax = SpawnerMax),alpha = 0.5, fill = "dodgerblue") +
+  geom_ribbon(aes(x = Year, ymin = Spawner25, ymax = Spawner75),  alpha = 0.5) +
+  geom_line(aes(x = Year, y = SpawnerMed), lwd = 1, alpha = 0.7) +
+  theme(axis.text = element_text(size=12),
+        axis.title=element_text(size=14,face="bold"))
 
 
