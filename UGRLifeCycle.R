@@ -1,9 +1,9 @@
 
 
 # 1--------------------SPECIFY SCENARIO-----------------------#
-scenario_name <- "UGR" # your scenario name here
+scenario_name <- "CC" # your scenario name here
 years <- 100
-runs <- 200
+runs <- 500
 population <- "CC" # CC or UGR
 
 # Initial values start at natural fry and hatchery smolt
@@ -22,3 +22,12 @@ source("UGRLifeCycle_Run.R")
 
 # 4----------------CALL SUMMARY GRAPHICS-----------------------#
 source("UGRLifeCycle_Plot.R", print.eval=TRUE)
+
+
+# 5 write out a single summarization
+# change to your directory of choice
+write.csv(sims, file="/Users/nick/Desktop/final.csv")
+
+
+
+

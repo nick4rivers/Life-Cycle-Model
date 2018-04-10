@@ -17,16 +17,16 @@ for (i in 1:nrow(input)) {
   assign(paste("p_",input$Stage_Transition[i], sep=""), c(input$Productivity[i], input$Productivity_SD[i],
                                                           input$Capacity[i], input$Capacity_SD[i],
                                                           input$Transition[i], input$Transition_SD[i],
-                                                          input$Natural_Scaler[i], input$Hatchery_Scaler[i], input$Hatchery_Scaler[i]))
+                                                          input$Natural_Scaler[i], input$Hatchery_Scaler[i]))
 }
 
 #---------------SET DATA FRAME FOR SIMULATIONS----------------------#
 #create a vector for our stages from the input dataframe
-stages <- unique(input$Stage1)
+stages <- unique(c(input$Stage1, input$Stage2))
 
 
 #Add accounting stages we are missing
-stages <- c(stages,  "LGDAdult1","LGDAdult2","LGDAdult3", "Brood")
+stages <- c(stages, "Brood")
 
 #create hatchery stages
 my_hatch <- c()
@@ -135,10 +135,10 @@ for (j in 1:runs) {
         # Retain natural adults at the trap
         if (sims$TrapAdult[i] > wild_target) {
           sims$Brood[i] <- wild_target
-          sims$TrapAdult[i] <- sims$TrapAdult[i] - sims$Brood[i]
+          sims$PassedAdult[i] <- sims$TrapAdult[i] - sims$Brood[i]
         } else { # or take them all
           sims$Brood[i] <- sims$TrapAdult[i]
-          sims$TrapAdult[i] <- 0
+          sims$PassedAdult[i] <- 0
         }
         
         #Calculate hatchery needed to reach brood goal given wild retained
@@ -147,10 +147,10 @@ for (j in 1:runs) {
         #Try to take what you need, or take them all
         if (sims$H1_TrapAdult[i] > hatchery_target) {
           sims$H1_Brood[i] <- hatchery_target
-          sims$H1_TrapAdult[i] <- sims$H1_TrapAdult[i] - sims$H1_Brood[i]
+          sims$H1_PassedAdult[i] <- sims$H1_TrapAdult[i] - sims$H1_Brood[i]
         } else {
           sims$H1_Brood[i] <- sims$H1_TrapAdult[i]
-          sims$H1_TrapAdult <- 0
+          sims$H1_PassedAdult[i] <- 0
         }
         
         #Set Total Brood
@@ -170,7 +170,7 @@ for (j in 1:runs) {
         
         # Take the target and rescale trap adults
         sims$Brood[i] <- wild_target
-        sims$TrapAdult[i] <- sims$TrapAdult[i] - sims$Brood[i]
+        sims$PassedAdult[i] <- sims$TrapAdult[i] - sims$Brood[i]
         
         # set hatchery target from remaining brood goal
         hatchery_target <- brood_goal - sims$Brood[i]
@@ -178,10 +178,10 @@ for (j in 1:runs) {
         #Try to take what you need, or take them all
         if (sims$H1_TrapAdult[i] > hatchery_target) {
           sims$H1_Brood[i] <- hatchery_target
-          sims$H1_TrapAdult[i] <- sims$H1_TrapAdult[i] - sims$H1_Brood[i]
+          sims$H1_PassedAdult[i] <- sims$H1_TrapAdult[i] - sims$H1_Brood[i]
         } else {
           sims$H1_Brood[i] <- sims$H1_TrapAdult[i]
-          sims$H1_TrapAdult[i] <- 0
+          sims$H1_PassedAdult[i] <- 0
         }
         
         #Set Total Brood
@@ -189,12 +189,22 @@ for (j in 1:runs) {
         
       } # END UGR SUP
     } # SUP STOP
-    ##################### END SUPPLEMENTATION SCHEME ########################
-
-    #--------------Trap Adult to Spawner----------------#    
-    sims$Spawner[i] <- bev_holt(sims$TrapAdult[i], p_TrapAdult_Spawner)
+    
+    #---------------------Trap Adult to Passed Adult--------------------------#
+    # Passess all adults when/if supplementation is shut down
+    if (i >= stop_sup) {
+      # Natural
+      sims$PassedAdult[i] <- sims$TrapAdult[i]
+      # Hatchery
+      sims$H1_PassedAdult[i] <- sims$H1_TrapAdult[i]
+    }
+    
+    ##################### END SUPPLEMENTATION SCHEME ##########################
+    
+    #--------------Passed Adult to Spawner----------------#    
+    sims$Spawner[i] <- bev_holt(sims$PassedAdult[i], p_PassedAdult_Spawner)
     #<<----HATCH----->>#
-    sims$H1_Spawner[i] <- h1_bev_holt(sims$H1_TrapAdult[i], p_TrapAdult_Spawner)
+    sims$H1_Spawner[i] <- h1_bev_holt(sims$H1_PassedAdult[i], p_PassedAdult_Spawner)
     
     #########SPAWNER AND EGGS###########
     #--------------Spawner to Egg----------------#  
@@ -286,9 +296,14 @@ for (j in 1:runs) {
 }
 
 
-# write out a single summarization
-# change to your directory of choice
-# write.csv(sims, file="/Users/nick/Desktop/final.csv")
+
+# Some final accounting
+
+final <- final %>%
+  mutate(TotalSpawner = Spawner + H1_Spawner,
+         TotalTrap = TrapAdult + H1_TrapAdult)
+
+
 
 
 
