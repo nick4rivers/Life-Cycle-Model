@@ -4,17 +4,17 @@ library(tidyverse)
 
 
 summary <- final %>%
-  select(Scenario, Year, Run, TotalEgg, Parr, LGDSmolt, H1_LGDSmolt, TrapAdult, H1_TrapAdult, Brood, TotalTrap, H1_Brood, Spawner, H1_Spawner, TotalSpawner, Parr) %>%
+  select(Scenario, Year, Run, Egg, Parr, LGDSmolt, H1_LGDSmolt, TrapAdult, H1_TrapAdult, Brood, TotalTrap, H1_Brood, Spawner, H1_Spawner, TotalSpawner, Parr) %>%
   group_by(Scenario, Year) %>%
   summarise(
     # TotalEgg = natural plus hatchery
     
     # Eggs Natural + Hatchery
-    TotalEggMin = min(TotalEgg),
-    TotalEgg25 = quantile(TotalEgg, 0.25),
-    TotalEggMed = median(TotalEgg),
-    TotalEgg75 = quantile(TotalEgg, 0.75),
-    TotalEggMax = max(TotalEgg),
+    EggMin = min(Egg),
+    Egg25 = quantile(Egg, 0.25),
+    EggMed = median(Egg),
+    Egg75 = quantile(Egg, 0.75),
+    EggMax = max(Egg),
     
     # Parr
     ParrMin = min(Parr),
@@ -100,11 +100,11 @@ summary <- final %>%
 # RIBBON PLOTS
 
 
-# Total Eggs
+# Eggs
 ggplot(summary) +
-  geom_ribbon(aes(x = Year, ymin = TotalEggMin, ymax = TotalEggMax),alpha = 0.5, fill = "coral3") +
-  geom_ribbon(aes(x = Year, ymin = TotalEgg25, ymax = TotalEgg75),  alpha = 0.5) +
-  geom_line(aes(x = Year, y = TotalEggMed), lwd = 1, alpha = 0.7) +
+  geom_ribbon(aes(x = Year, ymin = EggMin, ymax = EggMax),alpha = 0.5, fill = "coral3") +
+  geom_ribbon(aes(x = Year, ymin = Egg25, ymax = Egg75),  alpha = 0.5) +
+  geom_line(aes(x = Year, y = EggMed), lwd = 1, alpha = 0.7) +
   labs(y = "Eggs", title = "Natural + Hatchery Eggs", subtitle = scenario_name) +
   theme(axis.text = element_text(size=12,face="bold"),
         axis.title = element_text(size=14,face="bold"),

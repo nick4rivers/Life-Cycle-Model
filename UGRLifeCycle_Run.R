@@ -13,11 +13,13 @@ if (population == "CC") {
 }
 
 #Create a big array of all constants from the input file
+#Create a big array of all constants from the input file
 for (i in 1:nrow(input)) {
   assign(paste("p_",input$Stage_Transition[i], sep=""), c(input$Productivity[i], input$Productivity_SD[i],
                                                           input$Capacity[i], input$Capacity_SD[i],
                                                           input$Transition[i], input$Transition_SD[i],
-                                                          input$Natural_Scaler[i], input$Hatchery_Scaler[i]))
+                                                          input$Natural_Prod_Scaler[i], input$Hatchery_Prod_Scaler[i],
+                                                          input$Natural_Cap_Scaler[i], input$Hatchery_Cap_Scaler[i]))
 }
 
 #---------------SET DATA FRAME FOR SIMULATIONS----------------------#
@@ -54,7 +56,7 @@ names(sims) <- stages
 bev_holt <- function (stage1, stage_param) {
   # define productivity and capacity
   prod <-  stage_param[7] * rposnorm(1, mean = stage_param[1], sd = stage_param[2])
-  cap <- rposnorm(1, mean = stage_param[3], sd = stage_param[4])
+  cap <- stage_param[9] * rposnorm(1, mean = stage_param[3], sd = stage_param[4])
   # the bev hold  
   stage1 / (((1/prod) + ((1/cap)*stage1)))
 }
@@ -62,7 +64,7 @@ bev_holt <- function (stage1, stage_param) {
 h1_bev_holt <- function (stage1, stage_param) {
   # define productivity and capacity
   prod <-  stage_param[8] * rposnorm(1, mean = stage_param[1], sd = stage_param[2])
-  cap <- rposnorm(1, mean = stage_param[3], sd = stage_param[4])
+  cap <- stage_param[10] * rposnorm(1, mean = stage_param[3], sd = stage_param[4])
   # the bev hold  
   stage1 / (((1/prod) + ((1/cap)*stage1)))
 }
@@ -76,7 +78,7 @@ for (j in 1:runs) {
   sims$Run <- j
   
   #Seed the model
-  sims$Fry[1] <- seed_fry #wild
+  sims$Fry[1] <- seed_fry
   sims$H1_LGDSmolt[1] <- seed_hatchery_smolt #hatchery
   
   #Loop for years 
@@ -92,7 +94,7 @@ for (j in 1:runs) {
     
     ##########FRY AND PARR###################
     #--------------FRY TO PARR----------------#
-    # There's no such thing as a hatchery Fry, they all became wild as eggs! 
+    # There's no such thing as a hatchery Fry, they all became wild as Eggs! 
     sims$Parr[i] <- bev_holt(sims$Fry[i], p_Fry_Parr)
     
     #--------------Pre Smolts to LGD Smolts----------------#
@@ -103,7 +105,7 @@ for (j in 1:runs) {
          bev_holt(sims$PreSmoltValley[i], p_PreSmoltValley_LGDSmolt))
     #<<----HATCH----->>#
     #Hatchery releases to LGD smolt
-    sims$H1_LGDSmolt[i] <- bev_holt(sims$H1_HatchRelease[i], p_HatchRelease_LGDSmolt)
+    sims$H1_LGDSmolt[i] <- h1_bev_holt(sims$H1_HatchRelease[i], p_HatchRelease_LGDSmolt)
     
 
     #######RETURNING ADULTS###########
@@ -199,22 +201,20 @@ for (j in 1:runs) {
       sims$H1_PassedAdult[i] <- sims$H1_TrapAdult[i]
     }
     
-    ##################### END SUPPLEMENTATION SCHEME ##########################
+    ##################### END SUPPLEMENTATION SCHEME ###############################
     
     #--------------Passed Adult to Spawner----------------#    
     sims$Spawner[i] <- bev_holt(sims$PassedAdult[i], p_PassedAdult_Spawner)
     #<<----HATCH----->>#
     sims$H1_Spawner[i] <- h1_bev_holt(sims$H1_PassedAdult[i], p_PassedAdult_Spawner)
     
+    #----------------Sum Spawners-------------------------#
+    sims$TotalSpawner[i] <- sims$Spawner[i] + sims$H1_Spawner[i]
+    
     #########SPAWNER AND EGGS###########
     #--------------Spawner to Egg----------------#  
-    sims$Egg[i] <- 0.5 * bev_holt(sims$Spawner[i], p_Spawner_Egg)
-    #<<----HATCH----->>#
-    sims$H1_Egg[i] <- 0.5 * h1_bev_holt(sims$H1_Spawner[i], p_Spawner_Egg)
+    sims$Egg[i] <- 0.5 * bev_holt(sims$TotalSpawner[i], p_TotalSpawner_Egg)
     
-    #-------------- Sum Eggs ----------------#
-    #Note this is where H1 is Wild Again!!!!!
-    sims$TotalEgg[i] <- sims$Egg[i] + sims$H1_Egg[i]
     
     ##########################################
     #####       NEXT YEAR                #####
@@ -223,7 +223,7 @@ for (j in 1:runs) {
     
       #########EGGS TO FRY###########
       #Note, there's no such thing as a hatchery egg, all eggs are wild
-      sims$Fry[i+1] <- bev_holt(sims$TotalEgg[i], p_TotalEgg_Fry)
+      sims$Fry[i+1] <- bev_holt(sims$Egg[i], p_Egg_Fry)
       
       #########PARR AND PRESMOLT###########
       #--------------PARR TO PRE SMOLTS----------------#
@@ -300,8 +300,7 @@ for (j in 1:runs) {
 # Some final accounting
 
 final <- final %>%
-  mutate(TotalSpawner = Spawner + H1_Spawner,
-         TotalTrap = TrapAdult + H1_TrapAdult)
+  mutate(TotalTrap = TrapAdult + H1_TrapAdult)
 
 
 

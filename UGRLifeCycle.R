@@ -2,16 +2,16 @@
 
 # 1--------------------SPECIFY SCENARIO-----------------------#
 scenario_name <- "CC" # your scenario name here
-years <- 100
-runs <- 500
+years <- 10
+runs <- 10
 population <- "CC" # CC or UGR
 
-# Initial values start at natural fry and hatchery smolt
-seed_fry <- 1000000
-seed_hatchery_smolt <- 150000
+# Initial values
+seed_fry <- 100000
+seed_hatchery_smolt <- 100000
 
 # Stop supplementation in year
-stop_sup <- 80 # set to YEARS if ON
+stop_sup <- 50 # set to YEARS if ON, set to ZERO if OFF
 
 # 2---------------READ IN THE INPUT FILE----------------------#
 #model inputs
@@ -26,7 +26,7 @@ source("UGRLifeCycle_Plot.R", print.eval=TRUE)
 
 # 5 write out a single summarization
 # change to your directory of choice
-write.csv(sims, file="/Users/nick/Desktop/final.csv")
+write.csv(final, file="/Users/nick/Desktop/final.csv")
 
 
 
