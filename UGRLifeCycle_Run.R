@@ -1,19 +1,17 @@
 
 
-library(tidyverse) # for data manupulation and some plots
-library(VGAM) # postive only normal distribution function
+library(tidyverse) # for data manipulation and graphics
 
 
 #---------------Establish Constants------------------------#
-#Supplementation goal based on population as total brood retention
+# Supplementation goal based on population as total brood retention
 if (population == "CC") {
   brood_goal = 102
 } else {
   brood_goal = 170
 }
 
-#Create a big array of all constants from the input file
-#Create a big array of all constants from the input file
+# Create a big array of all constants from the input file
 for (i in 1:nrow(input)) {
   assign(paste("p_",input$Stage_Transition[i], sep=""), c(input$Productivity[i], input$Productivity_SD[i],
                                                           input$Capacity[i], input$Capacity_SD[i],
@@ -23,73 +21,55 @@ for (i in 1:nrow(input)) {
 }
 
 #---------------SET DATA FRAME FOR SIMULATIONS----------------------#
-#create a vector for our stages from the input dataframe
+# Create a vector for our stages from the input dataframe
 stages <- unique(c(input$Stage1, input$Stage2))
 
 
-#Add accounting stages we are missing
+# Add accounting stages we are missing
 stages <- c(stages, "Brood")
 
-#create hatchery stages
+# Create hatchery stages
 my_hatch <- c()
 for (i in 1:length(stages)) {
   my_hatch[i] <- paste("H1_",stages[i], sep="")
 }
 
-#add years, reps and hatchery placeholder names
+# Add years, reps and other stages needed
 stages <- c("Scenario", "Year", "Run", stages, my_hatch, "TotalBrood")
-# Delete HatchRelease Element
+# Delete any stages not needed
 stages <- stages[stages != "HatchRelease"]
 rm(my_hatch)
 
-#Create a dataframe equal to years and columns needed
+# Create a dataframe equal to years and columns needed
 sims <- data.frame(matrix(0, nrow=years, ncol=length(stages)))
 
-#Name the columns in our dataframe
+# Name the columns in our dataframe
 names(sims) <- stages
 
-#---------------BEAVERTON HOLT FUNCTION----------------------#
-# Takes 2 arguments
-# stage1 = N at first stage
-# stage1_parms = array vector of parameters
+# Note, if running this file you will need to first load the functions from Function.R file
 
-bev_holt <- function (stage1, stage_param) {
-  # define productivity and capacity
-  prod <-  stage_param[7] * rposnorm(1, mean = stage_param[1], sd = stage_param[2])
-  cap <- stage_param[9] * rposnorm(1, mean = stage_param[3], sd = stage_param[4])
-  # the bev hold  
-  stage1 / (((1/prod) + ((1/cap)*stage1)))
-}
-
-h1_bev_holt <- function (stage1, stage_param) {
-  # define productivity and capacity
-  prod <-  stage_param[8] * rposnorm(1, mean = stage_param[1], sd = stage_param[2])
-  cap <- stage_param[10] * rposnorm(1, mean = stage_param[3], sd = stage_param[4])
-  # the bev hold  
-  stage1 / (((1/prod) + ((1/cap)*stage1)))
-}
 
 ########################################
 ####     START MODEL LOOPS         #####
 ########################################
 
-#Loops for runs
+# Loops for runs
 for (j in 1:runs) {
   sims$Run <- j
   
-  #Seed the model
+  # Seed the model
   sims$Fry[1] <- seed_fry
-  sims$H1_LGDSmolt[1] <- seed_hatchery_smolt #hatchery
+  sims$H1_LGDSmolt[1] <- seed_hatchery_smolt # hatchery
   
-  #Loop for years 
+  # Loop for years 
   for (i in 1:years) {
     
-    #Iterate years
+    # Iterate years
     sims$Year[i] <- i
     sims$Scenario[i] <- scenario_name
     
     ##########################################
-    #####       WITHIN YEAR              #####
+    #####        WITHIN YEAR             ##### 
     ##########################################
     
     ##########FRY AND PARR###################
@@ -98,16 +78,15 @@ for (j in 1:runs) {
     sims$Parr[i] <- bev_holt(sims$Fry[i], p_Fry_Parr)
     
     #--------------Pre Smolts to LGD Smolts----------------#
-    #Total smolts at LGD as sum of headwaters and valley pre-smolts after survival to LGD
+    # Total smolts at LGD as sum of headwaters and valley pre-smolts after survival to LGD
     sims$LGDSmolt[i] <- 
-      (bev_holt(sims$PreSmoltHeadwaters[i], p_PreSmoltHeadwaters_LGDSmolt)
-       +
-         bev_holt(sims$PreSmoltValley[i], p_PreSmoltValley_LGDSmolt))
+      (bev_holt(sims$PreSmoltHeadwaters[i], p_PreSmoltHeadwaters_LGDSmolt) +
+      bev_holt(sims$PreSmoltValley[i], p_PreSmoltValley_LGDSmolt))
     #<<----HATCH----->>#
-    #Hatchery releases to LGD smolt
+    # Hatchery releases to LGD smolt
     sims$H1_LGDSmolt[i] <- h1_bev_holt(sims$H1_HatchRelease[i], p_HatchRelease_LGDSmolt)
     
-
+    
     #######RETURNING ADULTS###########
     #--------------LGD Adult to Trap Adult----------------#    
     sims$TrapAdult[i] <- bev_holt(sims$LGDAdult[i], p_LGDAdult_TrapAdult)
@@ -116,15 +95,14 @@ for (j in 1:runs) {
     
     
     ############# SUPPLEMENTATION SCHEME ############################
-    
     if (i < stop_sup) { # Turn off hatchery supplementation in year
       
       if (population == "CC") {
         
         #### CATHERINE CREEK SUP ####
         
-        #Set target for wild fish retention
-        #Check spawners returning to the trap
+        # Set target for wild fish retention
+        # Check spawners returning to the trap
         if (sims$TrapAdult[i] + sims$H1_TrapAdult[i] < 250) {
           wild_target <- 0.4 * brood_goal #Low Tier
         } else if (sims$TrapAdult[i] + sims$H1_TrapAdult[i] > 500) {
@@ -143,10 +121,10 @@ for (j in 1:runs) {
           sims$PassedAdult[i] <- 0
         }
         
-        #Calculate hatchery needed to reach brood goal given wild retained
+        # Calculate hatchery needed to reach brood goal given wild retained
         hatchery_target <- brood_goal - sims$Brood[i]
         
-        #Try to take what you need, or take them all
+        # Try to take what you need, or take them all
         if (sims$H1_TrapAdult[i] > hatchery_target) {
           sims$H1_Brood[i] <- hatchery_target
           sims$H1_PassedAdult[i] <- sims$H1_TrapAdult[i] - sims$H1_Brood[i]
@@ -155,17 +133,17 @@ for (j in 1:runs) {
           sims$H1_PassedAdult[i] <- 0
         }
         
-        #Set Total Brood
-        sims$TotalBrood[i] <- sims$H1_Brood[i] + sims$Brood[i]
+        # Set Total Brood
+        sims$TotalBrood[i] <- floor(sims$H1_Brood[i] + sims$Brood[i])
         
       } else {
         
         #### UPPER GRANDE RONDE SUP ####  
         
-        # set target for wild retention
+        # Set target for wild retention
         wild_target <- sims$TrapAdult[i] * 0.5
         
-        # make sure it's not too many
+        # Make sure it's not too many
         if (wild_target > brood_goal) {
           wild_target <- brood_goal
         }
@@ -174,10 +152,10 @@ for (j in 1:runs) {
         sims$Brood[i] <- wild_target
         sims$PassedAdult[i] <- sims$TrapAdult[i] - sims$Brood[i]
         
-        # set hatchery target from remaining brood goal
+        # Set hatchery target from remaining brood goal
         hatchery_target <- brood_goal - sims$Brood[i]
         
-        #Try to take what you need, or take them all
+        # Try to take what you need, or take them all
         if (sims$H1_TrapAdult[i] > hatchery_target) {
           sims$H1_Brood[i] <- hatchery_target
           sims$H1_PassedAdult[i] <- sims$H1_TrapAdult[i] - sims$H1_Brood[i]
@@ -186,8 +164,8 @@ for (j in 1:runs) {
           sims$H1_PassedAdult[i] <- 0
         }
         
-        #Set Total Brood
-        sims$TotalBrood[i] <- sims$H1_Brood[i] + sims$Brood[i]
+        # Set Total Brood
+        sims$TotalBrood[i] <- floor(sims$H1_Brood[i] + sims$Brood[i])
         
       } # END UGR SUP
     } # SUP STOP
@@ -222,14 +200,21 @@ for (j in 1:runs) {
     if (i < years) { #Don't do on final year
     
       #########EGGS TO FRY###########
-      #Note, there's no such thing as a hatchery egg, all eggs are wild
+      # Note, there's no such thing as a hatchery egg, all eggs are wild
       sims$Fry[i+1] <- bev_holt(sims$Egg[i], p_Egg_Fry)
       
       #########PARR AND PRESMOLT###########
       #--------------PARR TO PRE SMOLTS----------------#
-      #Note no Survival Here - they just move
-      sims$PreSmoltHeadwaters[i + 1] <- sims$Parr[i] * p_Parr_PreSmoltHeadwaters[5]
-      sims$PreSmoltValley[i + 1] <- sims$Parr[i] * p_Parr_PreSmoltValley[5]
+      # Note no Survival Here - they just move
+      
+      # Calculate random beta probability for each choice
+      beta_shapes <- est_beta_parms(p_Parr_PreSmoltHeadwaters[5], p_Parr_PreSmoltHeadwaters[6]^2)
+      tran_prob1 <-  rbeta(1, beta_shapes$alpha, beta_shapes$beta)
+      tran_prob2 <- 1 - tran_prob1
+      
+      # Move fish
+      sims$PreSmoltHeadwaters[i + 1] <- floor(sims$Parr[i] * tran_prob1)
+      sims$PreSmoltValley[i + 1] <- ceiling(sims$Parr[i] * tran_prob2)
     
       #########OCEAN ADULTS###########
       #--------------LGD Smolts to LGD Adults 1----------------#
@@ -239,7 +224,7 @@ for (j in 1:runs) {
       sims$H1_LGDAdult1[i + 1] <-  h1_bev_holt((sims$H1_LGDSmolt[i] * p_LGDSmolt_LGDAdult1[5]), p_LGDSmolt_LGDAdult1)
       
       #--------------LGD Smolts to Ocean Adults 1----------------#
-      #LGDsmolts * stay in ocean probability
+      # LGDsmolts * stay in ocean probability
       sims$OceanAdult1[i + 1] <-  bev_holt((sims$LGDSmolt[i] * p_LGDSmolt_OceanAdult1[5]), p_LGDSmolt_OceanAdult1)
       #<<----HATCH----->>#
       sims$H1_OceanAdult1[i + 1] <-  h1_bev_holt((sims$H1_LGDSmolt[i] * p_LGDSmolt_OceanAdult1[5]), p_LGDSmolt_OceanAdult1)
@@ -265,7 +250,7 @@ for (j in 1:runs) {
       #--------------Natural Adults----------------#
       sims$H1_LGDAdult[i+1] <- sims$H1_LGDAdult1[i+1] + sims$H1_LGDAdult2[i+1] + sims$H1_LGDAdult3[i+1]
   
-    } #END YEAR TRANSITIONS
+    } # END YEAR TRANSITIONS
     
     ##########################################
     #####       TWO  YEARs                #####
@@ -276,37 +261,26 @@ for (j in 1:runs) {
       sims$H1_HatchRelease[i + 2] <- sims$TotalBrood[i] * 1470 #PreSmolts per brooder 
     }
     
-  #Print each year
+  # Print each year
   print(paste("Year", i))
   }
   #-----------------------------End year Loops------------------------------#
-  #New dataframe on first run, append on successive runs
+  # New dataframe on first run, append on successive runs
     if (j == 1) {
     final <- sims
   } else {
     final <- rbind(final, sims)
   }
   
-  #Reset simulation to 0's
+  # Reset simulation to 0's
   if (i < years) {
   sims[,] <- 0
   }
-  #Print on each run
+  # Print on each run
   print(paste("Run", j, "was super frickin' sweet"))
 }
-
-
 
 # Some final accounting
 
 final <- final %>%
   mutate(TotalTrap = TrapAdult + H1_TrapAdult)
-
-
-
-
-
-
-
-
-
