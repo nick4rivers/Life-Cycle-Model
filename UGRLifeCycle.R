@@ -1,7 +1,7 @@
 # 1--------------------SPECIFY SCENARIO-----------------------#
-scenario_name <- "CC" # Your scenario name here
+model_name <- "CC_WidPNV" # Your scenario name here
 years <- 100
-runs <- 100
+runs <- 20
 population <- "CC" # CC or UGR
 
 # Initial values
@@ -24,6 +24,12 @@ source("UGRLifeCycle_Plot.R", print.eval=TRUE)
 
 # 5------------WRITE OUTPUT TO WORKING DIRECTORY----------------#
 # final dataframe with all raw simulation values
-write.csv(final, file=paste(getwd(),"/",scenario_name,"_final.csv", sep=""))
+write.csv(final, file=paste(getwd(),"/",model_name,"_final.csv", sep=""))
 # summary dataframe with summarized values
-write.csv(summary, file=paste(getwd(),"/",scenario_name,"_summary.csv", sep=""))
+write.csv(summary, file=paste(getwd(),"/",model_name,"_summary.csv", sep=""))
+
+
+
+
+# WRITE SIMULATIONS TO DESKTOP
+write.csv(sims, file=("/Users/nick/Desktop/sims.csv"))
