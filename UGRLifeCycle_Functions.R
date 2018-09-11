@@ -1,4 +1,3 @@
-
 library(VGAM) # postive only normal distribution function
 
 

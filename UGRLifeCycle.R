@@ -1,35 +1,29 @@
-# 1--------------------SPECIFY SCENARIO-----------------------#
-model_name <- "CC_WidPNV" # Your scenario name here
-years <- 100
-runs <- 20
-population <- "CC" # CC or UGR
+# MAKE SURE YOU HAVE NECESSARY PACKAGES
+library(VGAM) # postive only normal distribution function
+library(tidyverse) # summary and graphics
+library(tcltk) # for folder selection
 
-# Initial values
-seed_fry <- 100000
-seed_hatchery_smolt <- 100000
 
-# Stop supplementation in year stop_sup, set to ZERO to turn supplimentation OFF
-stop_sup <- 60 # set to YEARS if ON, set to ZERO if OFF
+# 1---------------READ IN THE INPUT FILES---------------------------#
+model_folder <- tk_choose.dir()
+input <- read.csv(paste(model_folder, "/inputs.csv", sep=""), stringsAsFactors = FALSE)
+settings <- read.csv(paste(model_folder, "/settings.csv", sep=""), stringsAsFactors = FALSE)
 
-# 2---------------READ IN THE INPUT FILE---------------------------#
-#model inputs
-input <- read.csv(file.choose(), stringsAsFactors = FALSE)
 
-# 3---------------LOAD FUNCTIONS AND RUN THE MODEL-----------------#
+# 2---------------LOAD FUNCTIONS------------------------------------#
 source("UGRLifeCycle_Functions.R")
+
+
+# 3---------------CALL THE MODEL------------------------------------#
 source("UGRLifeCycle_Run.R")
+
 
 # 4----------------CALL SUMMARY AND GRAPHICS-----------------------#
 source("UGRLifeCycle_Plot.R", print.eval=TRUE)
 
-# 5------------WRITE OUTPUT TO WORKING DIRECTORY----------------#
+
+# 5------------WRITE OUTPUT MODEL DIRECTORY----------------#
 # final dataframe with all raw simulation values
-write.csv(final, file=paste(getwd(),"/",model_name,"_final.csv", sep=""))
+write.csv(final, file=paste(model_folder, "/output_raw.csv", sep=""))
 # summary dataframe with summarized values
-write.csv(summary, file=paste(getwd(),"/",model_name,"_summary.csv", sep=""))
-
-
-
-
-# WRITE SIMULATIONS TO DESKTOP
-write.csv(sims, file=("/Users/nick/Desktop/sims.csv"))
+write.csv(summary, file=paste(model_folder, "/output_summary.csv", sep=""))

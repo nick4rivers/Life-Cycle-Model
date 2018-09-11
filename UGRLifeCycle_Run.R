@@ -9,6 +9,16 @@ if (population == "CC") {
     brood_goal = 170
 }
 
+# Create variables from settings file
+for (i in 1:nrow(settings)) {
+    if (settings$setting_type[i] == "int") {
+        assign(settings$setting_name[i], as.integer(settings$setting_value[i]))
+    } else {
+        assign(settings$setting_name[i], as.character( settings$setting_value[i]))
+    }
+}
+
+
 # Create a big array of all constants from the input file
 for (i in 1:nrow(input)) {
     assign(paste("p_",input$Stage_Transition[i], sep=""), c(input$Productivity[i], input$Productivity_SD[i],
@@ -33,7 +43,7 @@ for (i in 1:length(stages)) {
 }
 
 # Add years, reps and other stages needed
-stages <- c("Scenario", "Year", "Run", stages, my_hatch, "TotalBrood")
+stages <- c("ModelName", "Model", "Year", "Run", stages, my_hatch, "TotalBrood")
 # Delete any stages not needed
 stages <- stages[stages != "HatchRelease"]
 rm(my_hatch)
@@ -64,7 +74,8 @@ for (j in 1:runs) {
     
         # Iterate years
         sims$Year[i] <- i
-        sims$Scenario[i] <- model_name
+        sims$ModelName[i] <- model_name
+        sims$Model[i] <- model
     
         ##########################################
         #####        WITHIN YEAR             ##### 
