@@ -33,7 +33,7 @@ for (i in 1:nrow(input)) {
 stages <- unique(c(input$Stage1, input$Stage2))
 
 
-# Add accounting stages we are missing
+# Add accounting stages we are missing that need hatchery
 stages <- c(stages, "Brood")
 
 # Create hatchery stages
@@ -42,8 +42,8 @@ for (i in 1:length(stages)) {
     my_hatch[i] <- paste("H1_",stages[i], sep="")
 }
 
-# Add years, reps and other stages needed
-stages <- c("ModelName", "Model", "Year", "Run", stages, my_hatch, "TotalBrood")
+# Add model run qualifiers
+stages <- c("ModelName", "Model", "Rep", "Year", "Run", stages, my_hatch, "TotalBrood")
 # Delete any stages not needed
 stages <- stages[stages != "HatchRelease"]
 rm(my_hatch)
@@ -72,10 +72,12 @@ for (j in 1:runs) {
     # Loop for years 
     for (i in 1:years) {
     
-        # Iterate years
+        # Run years and fill model qualifiers
         sims$Year[i] <- i
         sims$ModelName[i] <- model_name
         sims$Model[i] <- model
+        
+        
     
         ##########################################
         #####        WITHIN YEAR             ##### 
@@ -86,7 +88,7 @@ for (j in 1:runs) {
         # There's no such thing as a hatchery Fry, they all became wild as Eggs! 
         sims$Parr[i] <- bev_holt(sims$Fry[i], p_Fry_Parr)
     
-        #--------------Pre Smolts to LGD Smolts----------------#
+        #--------------PreSmolts to LGD Smolts----------------#
         # Total smolts at LGD as sum of headwaters and valley pre-smolts after survival to LGD
         sims$LGDSmolt[i] <- 
             (bev_holt(sims$PreSmoltHeadwaters[i], p_PreSmoltHeadwaters_LGDSmolt) +
@@ -213,7 +215,7 @@ for (j in 1:runs) {
             sims$Fry[i+1] <- bev_holt(sims$Egg[i], p_Egg_Fry)
         
             #########PARR AND PRESMOLT###########
-            #--------------PARR TO PRE SMOLTS----------------#
+            #--------------PARR TO PRESMOLTS----------------#
             # Note no Survival Here - they just move
             choice_probs <- move_choice(p_Parr_PreSmoltHeadwaters)
             sims$PreSmoltHeadwaters[i + 1] <- floor(sims$Parr[i] * choice_probs$prob1)

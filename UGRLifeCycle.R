@@ -14,8 +14,16 @@ settings <- read.csv(paste(model_folder, "/settings.csv", sep=""), stringsAsFact
 source("UGRLifeCycle_Functions.R")
 
 
-# 3---------------CALL THE MODEL------------------------------------#
+# 3a---------------CALL THE MODEL------------------------------------#
+
 source("UGRLifeCycle_Run.R")
+
+
+
+
+
+
+
 
 
 # 4----------------CALL SUMMARY AND GRAPHICS-----------------------#
