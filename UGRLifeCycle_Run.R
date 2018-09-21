@@ -2,12 +2,6 @@ library(tidyverse) # for data manipulation and graphics
 
 
 #---------------Establish Constants------------------------#
-# Supplementation goal based on population as total brood retention
-if (population == "CC") {
-    brood_goal = 102
-} else {
-    brood_goal = 170
-}
 
 # Create variables from settings file
 for (i in 1:nrow(settings)) {
@@ -26,6 +20,13 @@ for (i in 1:nrow(input)) {
                                                           input$Transition[i], input$Transition_SD[i],
                                                           input$Natural_Prod_Scaler[i], input$Hatchery_Prod_Scaler[i],
                                                           input$Natural_Cap_Scaler[i], input$Hatchery_Cap_Scaler[i]))
+}
+
+# Supplementation goal based on population as total brood retention
+if (population == "CC") {
+    brood_goal = 102
+} else {
+    brood_goal = 170
 }
 
 #---------------SET DATA FRAME FOR SIMULATIONS----------------------#
@@ -99,7 +100,7 @@ for (j in 1:runs) {
     
     
         #######RETURNING ADULTS###########
-        #--------------LGD Adult to Trap Adult----------------#    
+        #--------------LGD Adult to Trap Adult----------------#
         sims$TrapAdult[i] <- bev_holt(sims$LGDAdult[i], p_LGDAdult_TrapAdult)
         #<<----HATCH----->>#
         sims$H1_TrapAdult[i] <- h1_bev_holt(sims$H1_LGDAdult[i], p_LGDAdult_TrapAdult)

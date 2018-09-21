@@ -1,5 +1,5 @@
 # MAKE SURE YOU HAVE NECESSARY PACKAGES
-library(VGAM) # postive only normal distribution function
+library(VGAM) # positive only normal distribution function
 library(tidyverse) # summary and graphics
 library(tcltk) # for folder selection
 
@@ -14,15 +14,8 @@ settings <- read.csv(paste(model_folder, "/settings.csv", sep=""), stringsAsFact
 source("UGRLifeCycle_Functions.R")
 
 
-# 3a---------------CALL THE MODEL------------------------------------#
-
+# 3---------------CALL THE MODEL------------------------------------#
 source("UGRLifeCycle_Run.R")
-
-
-
-
-
-
 
 
 
