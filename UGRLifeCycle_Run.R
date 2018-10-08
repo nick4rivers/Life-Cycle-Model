@@ -44,7 +44,7 @@ for (i in 1:length(stages)) {
 }
 
 # Add model run qualifiers
-stages <- c("ModelName", "Model", "Rep", "Year", "Run", stages, my_hatch, "TotalBrood")
+stages <- c("ModelName", "Model", "Rep", "Year", "Run", stages, my_hatch)
 # Delete any stages not needed
 stages <- stages[stages != "HatchRelease"]
 rm(my_hatch)
@@ -98,13 +98,11 @@ for (j in 1:runs) {
         # Hatchery releases to LGD smolt
         sims$H1_LGDSmolt[i] <- h1_bev_holt(sims$H1_HatchRelease[i], p_HatchRelease_LGDSmolt)
     
-    
         #######RETURNING ADULTS###########
         #--------------LGD Adult to Trap Adult----------------#
         sims$TrapAdult[i] <- bev_holt(sims$LGDAdult[i], p_LGDAdult_TrapAdult)
         #<<----HATCH----->>#
         sims$H1_TrapAdult[i] <- h1_bev_holt(sims$H1_LGDAdult[i], p_LGDAdult_TrapAdult)
-    
     
         ############# SUPPLEMENTATION SCHEME ############################
         if (i < stop_sup) { # Turn off hatchery supplementation in year
@@ -160,7 +158,7 @@ for (j in 1:runs) {
                     wild_target <- brood_goal
                 }
         
-                # Take the target and rescale trap adults
+                # Take the target and rescale trap adults as passed adults
                 sims$Brood[i] <- wild_target
                 sims$PassedAdult[i] <- sims$TrapAdult[i] - sims$Brood[i]
         
@@ -192,20 +190,19 @@ for (j in 1:runs) {
         }
     
         ##################### END SUPPLEMENTATION SCHEME ###############################
-    
+        
         #--------------Passed Adult to Spawner----------------#    
         sims$Spawner[i] <- bev_holt(sims$PassedAdult[i], p_PassedAdult_Spawner)
         #<<----HATCH----->>#
         sims$H1_Spawner[i] <- h1_bev_holt(sims$H1_PassedAdult[i], p_PassedAdult_Spawner)
-    
+        
         #----------------Sum Spawners-------------------------#
         sims$TotalSpawner[i] <- sims$Spawner[i] + sims$H1_Spawner[i]
-    
+        
         #########SPAWNER AND EGGS###########
         #--------------Spawner to Egg----------------#  
         sims$Egg[i] <- 0.5 * bev_holt(sims$TotalSpawner[i], p_TotalSpawner_Egg)
-    
-    
+        
         ##########################################
         #####       NEXT YEAR                #####
         ##########################################
@@ -250,6 +247,7 @@ for (j in 1:runs) {
             #<<----HATCH----->>#
             sims$H1_LGDAdult3[i+1] <- h1_bev_holt((sims$H1_OceanAdult2[i] * p_OceanAdult2_LGDAdult3[5]), p_OceanAdult2_LGDAdult3)
     
+            
             #########SUM LGD ADULTS###########
             #--------------Natural Adults----------------#
             sims$LGDAdult[i+1] <- sims$LGDAdult1[i+1] + sims$LGDAdult2[i+1] + sims$LGDAdult3[i+1]
@@ -259,12 +257,16 @@ for (j in 1:runs) {
         } # END YEAR TRANSITIONS
     
         ##########################################
-        #####       TWO  YEARs                #####
+        #####       TWO  YEARs               #####
         ##########################################
         # This is just populating HatchRelease from AllBrood
         if (i < years - 1) { #Don't do in final two years
+            # Dump hatchery fish into valley
+            sims$H1_HatchRelease[i+2] <- h1_bev_holt(sims$TotalBrood[i], p_TotalBrood_HatchRelease)
+            
+            # TODO get rid of this soonish,
             #Dump hatchery fish into valley
-            sims$H1_HatchRelease[i + 2] <- sims$TotalBrood[i] * 1470 #PreSmolts per brooder 
+            # sims$H1_HatchRelease[i + 2] <- sims$TotalBrood[i] * 1470 #PreSmolts per brooder 
         }
     
         # Print each year

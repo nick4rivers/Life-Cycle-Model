@@ -1,6 +1,6 @@
 library(VGAM) # postive only normal distribution function
 
-
+# TODO refactor beta distribution function throughout?
 #--------------BETA DISTRIBUTIONS----------------#
 # Estimates shape parameters for a beta distribution based on mean and var
 # Used to keep survival and transition probabilityes from 0 to 1
@@ -10,6 +10,18 @@ est_beta_parms <- function(mu, var) {
     beta <- alpha * (1 / mu - 1)
     return(parms = list(alpha = alpha, beta = beta))
 }
+
+
+# TODO Refactor this shit too, only better
+#--------------LOG-NORM-Distribution----------------#
+# Estimates shape parameters for log-normal distribution based on mean and standard deviation
+# Used to used in bev-holt for productivity and capacity stochasticity
+est_log_parms <- function(mu, stdev) {
+    location <- log(mu^2 / sqrt(stdev^2 + mu^2))
+    shape <- sqrt(log(1 + (stdev^2 / mu^2)))
+    return(parms = list(location = location, shape = shape))
+}
+
 
 
 ###########################################################
@@ -69,7 +81,7 @@ h1_bev_holt <- function(stage1, stage_param) {
         # Use normal distribution for productivity
         prod <-  stage_param[8] * rposnorm(1, mean = stage_param[1], sd = stage_param[2])
     }
-    # Set capacity using normal distribution
+    # Set capacity using log-normal distribution
     cap <- stage_param[10] * rposnorm(1, mean = stage_param[3], sd = stage_param[4])
     # The bev holt  
     stage2 = floor(stage1 / (((1/prod) + ((1/cap)*stage1))))
