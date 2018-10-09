@@ -1,28 +1,29 @@
 library(VGAM) # postive only normal distribution function
 
-# TODO refactor beta distribution function throughout?
 #--------------BETA DISTRIBUTIONS----------------#
-# Estimates shape parameters for a beta distribution based on mean and var
+# Estimates shape parameters for a beta distribution based on mean and stdev
 # Used to keep survival and transition probabilityes from 0 to 1
 # Used in bev_holt and move function
-# Became get_random_beta <- est_beta_parms
+# returns a single random draw from a beta distribution
 get_random_beta <- function(mean, stdev) {
+    # turn the standard deviation into a variance
     var <- stdev^2
     alpha <- ((1 - mean) / var - 1 / mean) * mean ^ 2
     beta <- alpha * (1 / mean - 1)
+    # get the random draw from beta distribution
     random_beta_draw <- rbeta(1, alpha, beta)
     return(random_beta_draw)
 }
 
 
-# TODO Refactor this shit too, only better
-#--------------LOG-NORM-Distribution----------------#
+#--------------LOG-NORMAL DISTRIBUTIONS----------------#
 # Estimates shape parameters for log-normal distribution based on mean and standard deviation
-# Used to used in bev-holt for productivity and capacity stochasticity
-est_log_parms <- function(mu, stdev) {
-    location <- log(mu^2 / sqrt(stdev^2 + mu^2))
-    shape <- sqrt(log(1 + (stdev^2 / mu^2)))
-    return(parms = list(location = location, shape = shape))
+# Used to used in bev-holt for capacity stochasticity
+# returns a single random draw from a log-normal distribution
+get_random_log <- function(mean, stdev) {
+    location <- log(mean^2 / sqrt(stdev^2 + mean^2))
+    shape <- sqrt(log(1 + (stdev^2 / mean^2)))
+    random_log_draw <- rlnorm(1, location, shape)
 }
 
 
@@ -41,13 +42,14 @@ move_choices <- function(choice1_params) {
 }
 
 
-
 ###########################################################
 ##########   BEAVERTON HOLT FUNCTIONS   ###################
 ###########################################################
+# TODO refactor into a sinlge bev-holt function
 # Take two parameters
-# stage1 = name of the start life stage
-# stage_param = array of productivity, capacity, and 
+# stage1 = population at start life stage
+# stage_param = array of productivity, capacity, and stdeviations
+# returns stage 2 = population size at next life stage
 
 #--------------BEAVERTON HOLT----------------#
 bev_holt <- function (stage1, stage_param) {
@@ -77,13 +79,12 @@ bev_holt <- function (stage1, stage_param) {
         prod <- prod * stage_param[7] 
     }
     # Set Capacity
-    # TODO change to log-normal
-    # as positive normal distribution function
-    cap <- rposnorm(1, mean = stage_param[3], sd = stage_param[4])
+    # using log-normal distribution function
+    cap <- get_random_log(stage_param[3], stage_param[4])
     # multiplied by natural capacity scaler
     cap <- cap * stage_param[9]
     
-    # Finally the beverton holt function for next stage population
+    # Finally the beverton holt function for next stage population size
     stage2 = floor(stage1 / (((1/prod) + ((1/cap)*stage1))))
     #return the population size
     return(stage2)
@@ -117,9 +118,8 @@ h1_bev_holt <- function (stage1, stage_param) {
         prod <- prod * stage_param[8] 
     }
     # Set Capacity
-    # TODO change to log-normal
-    # as positive normal distribution function
-    cap <- rposnorm(1, mean = stage_param[3], sd = stage_param[4])
+    # using log-normal distribution function
+    cap <- get_random_log(stage_param[3], stage_param[4])
     # multiplied by natural capacity scaler
     cap <- cap * stage_param[10]
     
