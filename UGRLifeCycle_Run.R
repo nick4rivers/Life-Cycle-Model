@@ -215,7 +215,7 @@ for (j in 1:runs) {
             #########PARR AND PRESMOLT###########
             #--------------PARR TO PRESMOLTS----------------#
             # Note no Survival Here - they just move
-            choice_probs <- move_choice(p_Parr_PreSmoltHeadwaters)
+            choice_probs <- move_choices(p_Parr_PreSmoltHeadwaters)
             sims$PreSmoltHeadwaters[i + 1] <- floor(sims$Parr[i] * choice_probs$prob1)
             sims$PreSmoltValley[i + 1] <- ceiling(sims$Parr[i] * choice_probs$prob2)
         
