@@ -84,10 +84,10 @@ for (j in 1:runs) {
         #####        WITHIN YEAR             ##### 
         ##########################################
     
-        ##########FRY AND PARR###################
+        ##########FRY AND PARR#####################
         #--------------FRY TO PARR----------------#
         # There's no such thing as a hatchery Fry, they all became wild as Eggs! 
-        sims$Parr[i] <- bev_holt(sims$Fry[i], p_Fry_Parr)
+        sims$Parr[i] <- log_bev_holt(sims$Fry[i], p_Fry_Parr)
     
         #--------------PreSmolts to LGD Smolts----------------#
         # Total smolts at LGD as sum of headwaters and valley pre-smolts after survival to LGD

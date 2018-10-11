@@ -128,3 +128,24 @@ h1_bev_holt <- function (stage1, stage_param) {
     #return the population size
     return(stage2)
 }
+
+
+#--------------MODIFIED NATURAL BEAVERTON HOLT----------------#
+# based on reformulation of beaverton holt equation fit to log data
+# allows variation stochastic error around model fit to be log distributed
+log_bev_holt <- function(stage1, stage_param) {
+    # solve for beta from carrying capacity and productivity (survival)
+    beta <- stage_param[3] / stage_param[1]
+    # log predicted next stage
+    log_stage2 <- log(stage_param[3]) - log(beta + stage1)
+    # add error
+    log_stage2 <- log_stage2 + rnorm(1, 0, stage_param[4])
+    # transform to real value
+    stage2 <- floor(stage1*(exp(log_stage2)))
+    return(stage2)
+}
+
+# TODO add hatchery log_bev_holt function
+# TODO add log_bev_holt to adult density dependent stages
+
+
