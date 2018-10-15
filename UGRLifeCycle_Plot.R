@@ -98,8 +98,6 @@ summary <- final %>%
 
 
 # RIBBON PLOTS
-
-
 # Eggs
 ggplot(summary) +
     geom_ribbon(aes(x = Year, ymin = EggMin, ymax = EggMax),alpha = 0.5, fill = "coral3") +

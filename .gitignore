@@ -1,5 +1,8 @@
 # Created by https://www.gitignore.io/api/osx
 
+# Life-Cycle-Model directory
+/lcm_working
+
 ### OSX ###
 # General
 .DS_Store
@@ -8,7 +11,6 @@
 
 # R files
 .Rhistory
-
 
 # Icon must end with two \r
 Icon

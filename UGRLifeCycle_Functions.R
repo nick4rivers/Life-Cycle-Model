@@ -15,7 +15,6 @@ get_random_beta <- function(mean, stdev) {
     return(random_beta_draw)
 }
 
-
 #--------------LOG-NORMAL DISTRIBUTIONS----------------#
 # Estimates shape parameters for log-normal distribution based on mean and standard deviation
 # Used to used in bev-holt for capacity stochasticity
@@ -25,7 +24,6 @@ get_random_log <- function(mean, stdev) {
     shape <- sqrt(log(1 + (stdev^2 / mean^2)))
     random_log_draw <- rlnorm(1, location, shape)
 }
-
 
 ###########################################################
 ##########   MOVEMENT STOCHASTICITY     ###################
@@ -40,7 +38,6 @@ move_choices <- function(choice1_params) {
     choice_probs <- list(prob1 = prob1, prob2 = prob2)
     return(choice_probs)
 }
-
 
 ###########################################################
 ##########   BEAVERTON HOLT FUNCTIONS   ###################
@@ -128,7 +125,6 @@ h1_bev_holt <- function (stage1, stage_param) {
     #return the population size
     return(stage2)
 }
-
 
 #--------------MODIFIED NATURAL BEAVERTON HOLT----------------#
 # based on reformulation of beaverton holt equation fit to log data
