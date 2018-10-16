@@ -55,9 +55,6 @@ sims <- data.frame(matrix(0, nrow=years, ncol=length(stages)))
 # Name the columns in our dataframe
 names(sims) <- stages
 
-# Note, if running this file you will need to first load the functions from Function.R file
-
-
 ########################################
 ####     START MODEL LOOPS         #####
 ########################################
@@ -105,7 +102,7 @@ for (j in 1:runs) {
         sims$H1_TrapAdult[i] <- h1_bev_holt(sims$H1_LGDAdult[i], p_LGDAdult_TrapAdult)
     
         ############# SUPPLEMENTATION SCHEME ############################
-        if (i < stop_sup) { # Turn off hatchery supplementation in year
+        if (i < stop_sup) { # Turn off hatchery supplementation in year i
       
             if (population == "CC") {
         
@@ -192,9 +189,9 @@ for (j in 1:runs) {
         ##################### END SUPPLEMENTATION SCHEME ###############################
         
         #--------------Passed Adult to Spawner----------------#    
-        sims$Spawner[i] <- bev_holt(sims$PassedAdult[i], p_PassedAdult_Spawner)
+        sims$Spawner[i] <- log_bev_holt(sims$PassedAdult[i], p_PassedAdult_Spawner)
         #<<----HATCH----->>#
-        sims$H1_Spawner[i] <- h1_bev_holt(sims$H1_PassedAdult[i], p_PassedAdult_Spawner)
+        sims$H1_Spawner[i] <- h1_log_bev_holt(sims$H1_PassedAdult[i], p_PassedAdult_Spawner)
         
         #----------------Sum Spawners-------------------------#
         sims$TotalSpawner[i] <- sims$Spawner[i] + sims$H1_Spawner[i]

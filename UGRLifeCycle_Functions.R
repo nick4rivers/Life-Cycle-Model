@@ -130,6 +130,13 @@ h1_bev_holt <- function (stage1, stage_param) {
 # based on reformulation of beaverton holt equation fit to log data
 # allows variation stochastic error around model fit to be log distributed
 log_bev_holt <- function(stage1, stage_param) {
+    # scale productivity and make sure < 1
+    stage_param[1] <- stage_param[1] * stage_param[7]
+    if (stage_param[1] > 1) {
+        stage_param[1] = 1
+    }
+    # scale capacity
+    stage_param[3] * stage_param[7]
     # solve for beta from carrying capacity and productivity (survival)
     beta <- stage_param[3] / stage_param[1]
     # log predicted next stage
@@ -141,7 +148,23 @@ log_bev_holt <- function(stage1, stage_param) {
     return(stage2)
 }
 
-# TODO add hatchery log_bev_holt function
-# TODO add log_bev_holt to adult density dependent stages
-
-
+# TODO refactor so prevent using two versions of beverton holt functions
+# and the hatchery version
+h1_log_bev_holt <- function(stage1, stage_param) {
+    # scale productivity and make sure < 1
+    stage_param[1] <- stage_param[1] * stage_param[8]
+    if (stage_param[1] > 1) {
+        stage_param[1] = 1
+    }
+    # scale capacity
+    stage_param[3] * stage_param[10]
+    # solve for beta from carrying capacity and productivity (survival)
+    beta <- stage_param[3] / stage_param[1]
+    # log predicted next stage
+    log_stage2 <- log(stage_param[3]) - log(beta + stage1)
+    # add error
+    log_stage2 <- log_stage2 + rnorm(1, 0, stage_param[4])
+    # transform to real value
+    stage2 <- floor(stage1*(exp(log_stage2)))
+    return(stage2)
+}
