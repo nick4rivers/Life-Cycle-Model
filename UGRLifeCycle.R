@@ -13,7 +13,7 @@ input <- read.csv(paste(model_folder, "/inputs.csv", sep=""), stringsAsFactors =
 settings <- read.csv(paste(model_folder, "/settings.csv", sep=""), stringsAsFactors = FALSE)
 
 
-# 3---------------CALL THE MODEL------------------------------------#
+# 3---------------CALL THE MODEL-----------------------------------#
 source("UGRLifeCycle_Run.R")
 
 
@@ -21,7 +21,7 @@ source("UGRLifeCycle_Run.R")
 source("UGRLifeCycle_Plot.R", print.eval=TRUE)
 
 
-# 5------------WRITE OUTPUT TO MODEL DIRECTORY----------------#
+# 5------------WRITE OUTPUT TO MODEL DIRECTORY---------------------#
 # final dataframe with all raw simulation values
 write.csv(final, file=paste(model_folder, "/output_raw.csv", sep=""))
 # summary dataframe with summarized values
