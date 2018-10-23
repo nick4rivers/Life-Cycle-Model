@@ -31,7 +31,6 @@ get_random_log <- function(mean, stdev) {
     return(random_log_draw)
 }
 
-# TODO consider adding to ocean maturation
 ###########################################################
 ##########   MOVEMENT STOCHASTICITY     ###################
 ###########################################################
@@ -39,7 +38,7 @@ get_random_log <- function(mean, stdev) {
 # Takes parameter array for first choice
 # Outputs a list containing the probability of each choice
 # became move_choices to be more explicit, update
-move_choices <- function(params) {
+life_history_choices <- function(params) {
     prob1 <- get_random_beta(params$life_history, params$life_history_sd)
     prob2 <- 1 - prob1
     life_history_probs <- list(prob1 = prob1, prob2 = prob2)
@@ -68,17 +67,17 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
     # Use stochasticity estimates on parameters
     if (is.na(params$fit_sd)) {
         # set productivity for survival
-        if (params$productivity < 1)
+        if (params$productivity < 1) {
             # using beta distribution
             prod <- get_random_beta(params$productivity, params$productivity_sd)
-        # multiply by the productivity scaler
-        prod <- prod * prod_scaler
-        # be sure it isn't > 1
-        if (prod > 1) {
-            prod <- 1
-        }
+            # multiply by the productivity scaler
+            prod <- prod * prod_scaler
+            # be sure it isn't > 1
+            if (prod > 1) {
+                prod <- 1
+            }
         # or set productivity for fecundity
-        if (params$productivity >= 1) {
+        } else if (params$productivity >= 1) {
             # using positive normal distribution
             prod <- rposnorm(1, params$productivity, params$productivity_sd)
             # scale it
@@ -92,7 +91,7 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
         stage2_pop = (stage1_pop / (((1/prod) + ((1/cap)*stage1_pop))))
         return(stage2_pop)
         
-        # Use stochasticity on model fit
+    # Use stochasticity on model fit
     } else if (!is.na(params$fit_sd)) {
         # multiply by the productivity scaler
         prod <- params$productivity * prod_scaler
@@ -114,4 +113,3 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
         return(stage2_pop)
     }
 }
-
