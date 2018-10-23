@@ -1,8 +1,6 @@
 
 library(tidyverse)
 
-
-
 summary <- final %>%
     select(ModelName, Model, Year, Run, Egg, Parr, LGDSmolt, H1_LGDSmolt, TrapAdult, H1_TrapAdult, Brood, TotalTrap, H1_Brood, Spawner, H1_Spawner, TotalSpawner, Parr) %>%
     group_by(ModelName, Model, Year) %>%
@@ -96,7 +94,7 @@ summary <- final %>%
         
     )
 
-
+# TODO refactor into a plotting function
 # RIBBON PLOTS
 # Eggs
 ggplot(summary) +
@@ -233,3 +231,5 @@ ggplot(summary) +
         axis.title = element_text(size=14,face="bold"),
         plot.title = element_text(size=18, face="bold"),
         plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
+
+
