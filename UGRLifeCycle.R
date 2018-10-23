@@ -12,7 +12,6 @@ model_folder <- tk_choose.dir()
 input <- read.csv(paste(model_folder, "/inputs.csv", sep=""), stringsAsFactors = FALSE)
 settings <- read.csv(paste(model_folder, "/settings.csv", sep=""), stringsAsFactors = FALSE)
 
-
 # 3---------------CALL THE MODEL-----------------------------------#
 source("UGRLifeCycle_Run.R")
 

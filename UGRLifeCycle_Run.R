@@ -30,7 +30,6 @@ for (i in 1:nrow(input)) {
                                                                 "hatchery_cap_scaler" = input$Hatchery_Cap_Scaler[i]))
 }
 
-
 # Supplementation goal based on population as total brood retention
 if (population == "CC") {
     brood_goal = 102
@@ -79,9 +78,10 @@ for (j in 1:runs) {
     sims$Run <- j
     
     # Seed the model
-    sims$Fry[1] <- seed_fry
-    sims$H1_LGDSmolt[1] <- seed_hatchery_smolt # hatchery
-  
+    sims$Egg[1] <- seed_egg
+    sims$LGDSmolt[1] <- seed_natural_smolt
+    sims$H1_LGDSmolt[1] <- seed_hatchery_smolt
+    
     # Loop for years 
     for (i in 1:years) {
     
@@ -96,21 +96,18 @@ for (j in 1:runs) {
         #####        WITHIN YEAR             ##### 
         ##########################################
     
-        ##########FRY AND PARR#####################
-        #--------------FRY TO PARR----------------#
-        # There's no such thing as a hatchery Fry, they all became wild as Eggs!
-        # TODO consider removing and just having all this be egg to parr, more explicit and clear
-        sims$Parr[i] <- bev_holt('NO', sims$Fry[i], p_Fry_Parr)
-    
         #--------------PreSmolts to LGD Smolts----------------#
         # Total smolts at LGD as sum of headwaters and valley pre-smolts after survival to LGD
+        # Don't do in first year to allow seeding
+        if (i > 1) {
         sims$LGDSmolt[i] <-
             (bev_holt('NO', sims$PreSmoltHeadwaters[i], p_PreSmoltHeadwaters_LGDSmolt) +
             bev_holt('NO', sims$PreSmoltValley[i], p_PreSmoltValley_LGDSmolt))
         #<<----HATCH----->>#
         # Hatchery releases to LGD smolt
         sims$H1_LGDSmolt[i] <- bev_holt('HO', sims$H1_HatchRelease[i], p_HatchRelease_LGDSmolt)
-    
+        }
+        
         #######RETURNING ADULTS###########
         #--------------LGD Adult to Trap Adult----------------#
         sims$TrapAdult[i] <- bev_holt('NO', sims$LGDAdult[i], p_LGDAdult_TrapAdult)
@@ -213,50 +210,48 @@ for (j in 1:runs) {
         sims$TotalSpawner[i] <- sims$Spawner[i] + sims$H1_Spawner[i]
         
         #########SPAWNER AND EGGS###########
-        #--------------Spawner to Egg----------------#  
+        #--------------Spawner to Egg----------------#
+        # don't do in first year to allow seeding the model
+        if (i > 1) {
         sims$Egg[i] <- 0.5 * bev_holt('NO', sims$TotalSpawner[i], p_TotalSpawner_Egg)
-        
+        }
         ##########################################
         #####       NEXT YEAR                #####
         ##########################################
         if (i < years) { #Don't do on final year
-    
-            #########EGGS TO FRY###########
+            
+            #########EGGS TO PARR###########
             # Note, there's no such thing as a hatchery egg, all eggs gone wild
-            sims$Fry[i+1] <- bev_holt('NO', sims$Egg[i], p_Egg_Fry)
+            sims$Parr[i+1] <- bev_holt('NO', sims$Egg[i], p_Egg_Parr)
         
             #########PARR AND PRESMOLT###########
             #--------------PARR TO PRESMOLTS----------------#
             # Note no Survival Here - they just move
-            choice_probs <- move_choices(p_Parr_PreSmoltHeadwaters)
+            choice_probs <- life_history_choices(p_Parr_PreSmoltHeadwaters)
             sims$PreSmoltHeadwaters[i + 1] <- sims$Parr[i] * choice_probs$prob1
             sims$PreSmoltValley[i + 1] <- sims$Parr[i] * choice_probs$prob2
         
-            # TODO consider cleaning this up a bit
             #########OCEAN ADULTS###########
-            #--------------LGD Smolts to LGD Adults 1----------------#
-            #LGDsmolts * maturation or ocean probability
-            sims$LGDAdult1[i + 1] <-  bev_holt('NO', (sims$LGDSmolt[i] * p_LGDSmolt_LGDAdult1$life_history), p_LGDSmolt_LGDAdult1)
+            #--------------LGD Smolts to Adult Age 1----------------#
+            choice_probs <- life_history_choices(p_LGDSmolt_LGDAdult1)
+            sims$LGDAdult1[i + 1] <-  bev_holt('NO', (sims$LGDSmolt[i] * choice_probs$prob1), p_LGDSmolt_LGDAdult1)
+            sims$OceanAdult1[i + 1] <-  bev_holt('NO', (sims$LGDSmolt[i] * choice_probs$prob2), p_LGDSmolt_OceanAdult1)
             #<<----HATCH----->>#  
-            sims$H1_LGDAdult1[i + 1] <-  bev_holt('HO', (sims$H1_LGDSmolt[i] * p_LGDSmolt_LGDAdult1$life_history), p_LGDSmolt_LGDAdult1)
-      
-            #--------------LGD Smolts to Ocean Adults 1----------------#
-            # LGDsmolts * stay in ocean probability
-            sims$OceanAdult1[i + 1] <-  bev_holt('NO', (sims$LGDSmolt[i] * p_LGDSmolt_OceanAdult1$life_history), p_LGDSmolt_OceanAdult1)
+            sims$H1_LGDAdult1[i + 1] <-  bev_holt('HO', (sims$H1_LGDSmolt[i] * choice_probs$prob1), p_LGDSmolt_LGDAdult1)
+            sims$H1_OceanAdult1[i + 1] <-  bev_holt('HO', (sims$H1_LGDSmolt[i] * choice_probs$prob2), p_LGDSmolt_OceanAdult1)
+            
+            
+            #--------------Ocean Adult 1 to Adult Age 2----------------#
+            choice_probs <- life_history_choices(p_OceanAdult1_LGDAdult2)
+            sims$LGDAdult2[i+1] <- bev_holt('NO', (sims$OceanAdult1[i] * choice_probs$prob1), p_OceanAdult1_LGDAdult2)
+            sims$OceanAdult2[i+1] <- bev_holt('NO', (sims$OceanAdult1[i] * choice_probs$prob2), p_OceanAdult1_OceanAdult2)
             #<<----HATCH----->>#
-            sims$H1_OceanAdult1[i + 1] <-  bev_holt('HO', (sims$H1_LGDSmolt[i] * p_LGDSmolt_OceanAdult1$life_history), p_LGDSmolt_OceanAdult1)
+            sims$H1_LGDAdult2[i+1] <- bev_holt('HO', (sims$H1_OceanAdult1[i] * choice_probs$prob1), p_OceanAdult1_LGDAdult2)
+            sims$H1_OceanAdult2[i+1] <- bev_holt('HO', (sims$H1_OceanAdult1[i] * choice_probs$prob2), p_OceanAdult1_OceanAdult2)
       
-            #--------------Ocean Adult 1 to Ocean Adult 2----------------#
-            sims$OceanAdult2[i+1] <- bev_holt('NO', (sims$OceanAdult1[i] * p_OceanAdult1_OceanAdult2$life_history), p_OceanAdult1_OceanAdult2)
-            #<<----HATCH----->>#
-            sims$H1_OceanAdult2[i+1] <- bev_holt('HO', (sims$H1_OceanAdult1[i] * p_OceanAdult1_OceanAdult2$life_history), p_OceanAdult1_OceanAdult2)
+            
       
-            #--------------Ocean Adult 1 to   LGD Adult 2----------------#
-            sims$LGDAdult2[i+1] <- bev_holt('NO', (sims$OceanAdult1[i] * p_OceanAdult1_LGDAdult2$life_history), p_OceanAdult1_LGDAdult2)
-            #<<----HATCH----->>#
-            sims$H1_LGDAdult2[i+1] <- bev_holt('HO', (sims$H1_OceanAdult1[i] * p_OceanAdult1_LGDAdult2$life_history), p_OceanAdult1_LGDAdult2)
-      
-            #--------------Ocean Adult 2 to   LGD Adult 3----------------#
+            #--------------Ocean Adult 2 to LGD Adult 3----------------#
             sims$LGDAdult3[i+1] <- bev_holt('NO', (sims$OceanAdult2[i] * p_OceanAdult2_LGDAdult3$life_history), p_OceanAdult2_LGDAdult3)
             #<<----HATCH----->>#
             sims$H1_LGDAdult3[i+1] <- bev_holt('HO', (sims$H1_OceanAdult2[i] * p_OceanAdult2_LGDAdult3$life_history), p_OceanAdult2_LGDAdult3)
@@ -277,10 +272,6 @@ for (j in 1:runs) {
         if (i < years - 1) { #Don't do in final two years
             # Dump hatchery fish into valley
             sims$H1_HatchRelease[i+2] <- bev_holt('HO', sims$TotalBrood[i], p_TotalBrood_HatchRelease)
-            
-            # TODO get rid of this soonish,
-            #Dump hatchery fish into valley
-            # sims$H1_HatchRelease[i + 2] <- sims$TotalBrood[i] * 1470 #PreSmolts per brooder 
         }
     
         # Print each year
