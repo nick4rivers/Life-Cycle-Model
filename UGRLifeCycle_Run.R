@@ -124,11 +124,11 @@ for (j in 1:runs) {
                 # Set target for wild fish retention
                 # Check spawners returning to the trap
                 if (sims$TrapAdult[i] + sims$H1_TrapAdult[i] < 250) {
-                    wild_target <- 0.4 * brood_goal #Low Tier
+                    wild_target <- floor(0.4 * brood_goal) #Low Tier
                 } else if (sims$TrapAdult[i] + sims$H1_TrapAdult[i] > 500) {
-                    wild_target <- 0.1 * brood_goal #High Tier
+                    wild_target <- floor(0.1 * brood_goal) #High Tier
                 } else {
-                    wild_target <- 0.2 * brood_goal #Middle Tier
+                    wild_target <- floor(0.2 * brood_goal) #Middle Tier
                 }
         
                 #------- RESCALE WILD SPAWNERS ------------#
@@ -161,7 +161,7 @@ for (j in 1:runs) {
             #### UPPER GRANDE RONDE SUP ####  
         
                 # Set target for wild retention
-                wild_target <- sims$TrapAdult[i] * 0.5
+                wild_target <- floor(sims$TrapAdult[i] * 0.5)
         
                 # Make sure it's not too many
                 if (wild_target > brood_goal) {
@@ -213,7 +213,7 @@ for (j in 1:runs) {
         #--------------Spawner to Egg----------------#
         # don't do in first year to allow seeding the model
         if (i > 1) {
-        sims$Egg[i] <- 0.5 * bev_holt('NO', sims$TotalSpawner[i], p_TotalSpawner_Egg)
+        sims$Egg[i] <- bev_holt('NO',  floor(0.5 * sims$TotalSpawner[i]), p_TotalSpawner_Egg)
         }
         ##########################################
         #####       NEXT YEAR                #####
@@ -228,8 +228,8 @@ for (j in 1:runs) {
             #--------------PARR TO PRESMOLTS----------------#
             # Note no Survival Here - they just move
             choice_probs <- life_history_choices(p_Parr_PreSmoltHeadwaters)
-            sims$PreSmoltHeadwaters[i + 1] <- sims$Parr[i] * choice_probs$prob1
-            sims$PreSmoltValley[i + 1] <- sims$Parr[i] * choice_probs$prob2
+            sims$PreSmoltHeadwaters[i + 1] <- floor(sims$Parr[i] * choice_probs$prob1)
+            sims$PreSmoltValley[i + 1] <- ceiling(sims$Parr[i] * choice_probs$prob2)
         
             #########OCEAN ADULTS###########
             #--------------LGD Smolts to Adult Age 1----------------#

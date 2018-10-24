@@ -89,7 +89,7 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
         cap <- cap * cap_scaler
         # and finally bev-holt estimate
         stage2_pop = (stage1_pop / (((1/prod) + ((1/cap)*stage1_pop))))
-        return(stage2_pop)
+        return(floor(stage2_pop))
         
     # Use stochasticity on model fit
     } else if (!is.na(params$fit_sd)) {
@@ -110,6 +110,6 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
         sd <- rnorm(1, 0, params$fit_sd)
         # and get the final estimate
         stage2_pop <- stage2_pop*exp(sd)
-        return(stage2_pop)
+        return(floor(stage2_pop))
     }
 }
