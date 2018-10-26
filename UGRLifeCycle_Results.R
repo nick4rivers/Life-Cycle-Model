@@ -49,7 +49,7 @@ results_summary <- results_table %>%
 
 # TODO refactor into a graph function
 # Parr
-ggplot(results_summary, aes(y = Parr, x = Model)) +
+ggplot(results_summary, aes(y = Parr, x = ModelName)) +
     geom_jitter(width = 0.3, alpha = 0.3) +
     geom_boxplot(fill = "green3", alpha = 0.7) +
     labs(y = "Median Parr", title = "Late Summer Parr", subtitle = paste(max(results_summary$Run),"Model Runs")) +
@@ -59,7 +59,7 @@ ggplot(results_summary, aes(y = Parr, x = Model)) +
           plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
 
 # LGD Smolts
-ggplot(results_summary, aes(y = LGDSmolt, x = Model)) +
+ggplot(results_summary, aes(y = LGDSmolt, x = ModelName)) +
     geom_jitter(width = 0.3, alpha = 0.3) +
     geom_boxplot(fill = "dodgerblue3", alpha = 0.7) +
     labs(y = "Median Smolt", title = "Natural Smolt", subtitle = paste(max(results_summary$Run),"Model Runs")) +
@@ -69,7 +69,7 @@ ggplot(results_summary, aes(y = LGDSmolt, x = Model)) +
           plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
 
 # Spawner
-ggplot(results_summary, aes(y = Spawner, x = Model)) +
+ggplot(results_summary, aes(y = Spawner, x = ModelName)) +
     geom_jitter(width = 0.3, alpha = 0.3) +
     geom_boxplot(fill = "dodgerblue3", alpha = 0.7) +
     labs(y = "Median Spawners", title = "Natural Spawners", subtitle = paste(max(results_summary$Run),"Model Runs")) +
@@ -89,7 +89,7 @@ ggplot(results_summary, aes(y = H1_TrapAdult, x = Model)) +
           plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
 
 # Trap Adults Natural
-ggplot(results_summary, aes(y = TrapAdult, x = Model)) +
+ggplot(results_summary, aes(y = TrapAdult, x = ModelName)) +
     geom_jitter(width = 0.3, alpha = 0.3) +
     geom_boxplot(fill = "dodgerblue3", alpha = 0.7) +
     labs(y = "Median Adults", title = "Natural Adults to Trap", subtitle = paste(max(results_summary$Run),"Model Runs")) +

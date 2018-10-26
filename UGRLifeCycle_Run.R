@@ -73,6 +73,8 @@ rm(stages)
 ####     START MODEL LOOPS         #####
 ########################################
 
+
+
 # Loops for runs
 for (j in 1:runs) {
     sims$Run <- j
@@ -91,7 +93,6 @@ for (j in 1:runs) {
         sims$Model[i] <- model
         
         
-    
         ##########################################
         #####        WITHIN YEAR             ##### 
         ##########################################
