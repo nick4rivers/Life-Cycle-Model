@@ -13,6 +13,15 @@ for (i in 1:nrow(settings)) {
     }
 }
 
+# check stochasticity setting and set to 0
+if (stochasticity == 'OFF') {
+    input$Productivity_SD = 0
+    input$Capacity_SD = 0
+    input$Life_History_SD = 0
+    input$Fit_SD = 0
+}
+
+
 # Create list for parameters from in input file
 for (i in 1:nrow(input)) {
     assign(paste("p_",input$Stage_Transition[i], sep=""), list( "stage1" = input$Stage1[i],

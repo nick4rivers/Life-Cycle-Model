@@ -9,6 +9,7 @@ library(VGAM) # postive only normal distribution function
 # Used to keep survival and transition probabilityes from 0 to 1
 # Used in bev_holt and move function
 # returns a single random draw from a beta distribution
+# note, this returns 0.5 if the stdev input is a 0, so bev-holt function defaults to norm if stdev = 0
 get_random_beta <- function(mean, stdev) {
     # turn the standard deviation into a variance
     var <- stdev^2
@@ -39,7 +40,14 @@ get_random_log <- function(mean, stdev) {
 # Outputs a list containing the probability of each choice
 # became move_choices to be more explicit, update
 life_history_choices <- function(params) {
-    prob1 <- get_random_beta(params$life_history, params$life_history_sd)
+    # if no stochasticity
+    if (stochasticity == "OFF") {
+        # just set to first choice parameter
+        prob1 <- params$life_history
+    } else {
+        # beta distribution for first choice
+        prob1 <- get_random_beta(params$life_history, params$life_history_sd)   
+    }
     prob2 <- 1 - prob1
     life_history_probs <- list(prob1 = prob1, prob2 = prob2)
     return(life_history_probs)
@@ -66,8 +74,8 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
     
     # Use stochasticity estimates on parameters
     if (is.na(params$fit_sd)) {
-        # set productivity for survival
-        if (params$productivity < 1) {
+        # set productivity for survival with beta dist
+        if (params$productivity < 1 & params$productivity_sd > 0 ) {
             # using beta distribution
             prod <- get_random_beta(params$productivity, params$productivity_sd)
             # multiply by the productivity scaler
@@ -77,7 +85,8 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
                 prod <- 1
             }
         # or set productivity for fecundity
-        } else if (params$productivity >= 1) {
+        # or for survival with no stochasticity
+        } else if (params$productivity >= 1 | params$productivity_sd == 0) {
             # using positive normal distribution
             prod <- rposnorm(1, params$productivity, params$productivity_sd)
             # scale it
