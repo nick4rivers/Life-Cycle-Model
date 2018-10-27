@@ -25,8 +25,3 @@ source("UGRLifeCycle_Plot.R", print.eval=TRUE)
 write.csv(final, file=paste(model_folder, "/output_raw.csv", sep=""))
 # summary dataframe with summarized values
 write.csv(summary, file=paste(model_folder, "/output_summary.csv", sep=""))
-
-
-# 6------------------COMPARE MULTIPLE MODEL RESULTS---------------------#
-results_dir <- tk_choose.dir()
-source("UGRLifeCycle_Results.R")

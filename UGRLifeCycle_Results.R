@@ -1,37 +1,44 @@
 library(tidyverse) # summary and graphics
-
+library(scales)
+library(gridExtra)
 
 ####################################################
 ########        IMPORT DATA                 ########
 ####################################################
+
+# get data
+results_dir <- tk_choose.dir()
+
 
 # Loop through directories and stack up dataframes
 #Get the number of files in the directory
 scenario_dirs <- list.dirs(results_dir, recursive=FALSE)
 
 # get the first one, make a temp table, and final results table
-temp_results_table <- read.csv(paste(scenario_dirs[1],"/output_raw.csv", sep=""))
-results_table <- temp_results_table
+temp_raw_table <- read.csv(paste(scenario_dirs[1],"/output_raw.csv", sep=""))
+temp_summary_table <- read.csv(paste(scenario_dirs[1],"/output_summary.csv", sep=""))
+
+raw_table <- temp_raw_table
+summary_table <- temp_summary_table
 
 # read the rest and append to results_table
 for (i in 2:length(scenario_dirs)) {
-    temp_results_table <- read.csv(paste(scenario_dirs[i],"/output_raw.csv", sep=""))
-    results_table <- rbind(results_table, temp_results_table)
+    temp_raw_table <- read.csv(paste(scenario_dirs[i],"/output_raw.csv", sep=""))
+    raw_table <- rbind(raw_table, temp_raw_table)
+    temp_summary_table <- read.csv(paste(scenario_dirs[i],"/output_summary.csv", sep=""))
+    summary_table <- rbind(summary_table, temp_summary_table)
 }
-
-# clip data and add risk
 
 
 
 ####################################################
 ########    BOXPLOT MODEL COMPARISON        ########
 ####################################################
-
 # take the median value among years for each run
-results_summary <- results_table %>%
+raw_summary <- raw_table %>%
     select(ModelName, Model, Year, Run, Egg, Parr, LGDSmolt, H1_LGDSmolt, TrapAdult, H1_TrapAdult, Brood, TotalTrap, H1_Brood, Spawner, H1_Spawner, TotalSpawner) %>%
     # cut out burn in years and final 5 years
-    filter(Year >= 50 & Year <= max(Year) - 5) %>%
+    filter(Year >= 40 & Year <= max(Year) - 5) %>%
     group_by(ModelName, Model, Run) %>%
     # get median for list stages by run
     summarise(
@@ -47,63 +54,72 @@ results_summary <- results_table %>%
         TotalSpawner = median(TotalSpawner)
         )
 
-# TODO refactor into a graph function
+
+box_compare <- function(data, stage, fill_color, y_label, plot_title) {
+    ggplot(data, aes(y = stage, x = ModelName)) +
+        geom_jitter(width = 0.3, alpha = 0.3) +
+        geom_boxplot(fill = fill_color, alpha = 0.7) +
+        labs(y = y_label, title = plot_title, subtitle = paste(max(raw_summary$Run),"Model Runs")) +
+        theme(axis.text = element_text(size=12,face="bold"),
+              axis.title = element_text(size=14,face="bold"),
+              plot.title = element_text(size=18, face="bold"),
+              plot.subtitle = element_text(size=14, face="bold", color = "darkgray")) +
+        scale_y_continuous(labels = comma)
+}
+
 # Parr
-ggplot(results_summary, aes(y = Parr, x = ModelName)) +
-    geom_jitter(width = 0.3, alpha = 0.3) +
-    geom_boxplot(fill = "green3", alpha = 0.7) +
-    labs(y = "Median Parr", title = "Late Summer Parr", subtitle = paste(max(results_summary$Run),"Model Runs")) +
-    theme(axis.text = element_text(size=12,face="bold"),
-          axis.title = element_text(size=14,face="bold"),
-          plot.title = element_text(size=18, face="bold"),
-          plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
+box_compare(raw_summary, raw_summary$Parr, "green3", "Median Parr", "Late Summer Parr")
 
 # LGD Smolts
-ggplot(results_summary, aes(y = LGDSmolt, x = ModelName)) +
-    geom_jitter(width = 0.3, alpha = 0.3) +
-    geom_boxplot(fill = "dodgerblue3", alpha = 0.7) +
-    labs(y = "Median Smolt", title = "Natural Smolt", subtitle = paste(max(results_summary$Run),"Model Runs")) +
-    theme(axis.text = element_text(size=12,face="bold"),
-          axis.title = element_text(size=14,face="bold"),
-          plot.title = element_text(size=18, face="bold"),
-          plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
+box_compare(raw_summary, raw_summary$LGDSmolt, "coral3", "Median Smolt", "Natural Smolt at LGD")
 
-# Spawner
-ggplot(results_summary, aes(y = Spawner, x = ModelName)) +
-    geom_jitter(width = 0.3, alpha = 0.3) +
-    geom_boxplot(fill = "dodgerblue3", alpha = 0.7) +
-    labs(y = "Median Spawners", title = "Natural Spawners", subtitle = paste(max(results_summary$Run),"Model Runs")) +
-    theme(axis.text = element_text(size=12,face="bold"),
-          axis.title = element_text(size=14,face="bold"),
-          plot.title = element_text(size=18, face="bold"),
-          plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
+# Natural Spawners
+box_compare(raw_summary, raw_summary$Spawner, "dodgerblue", "Median Spawners", "Natural Spawners")
 
-# Trap Adults Hatchery
-ggplot(results_summary, aes(y = H1_TrapAdult, x = Model)) +
-    geom_jitter(width = 0.3, alpha = 0.3) +
-    geom_boxplot(fill = "deeppink3", alpha = 0.7) +
-    labs(y = "Median Adults", title = "Hatchery Adults to Trap", subtitle = paste(max(results_summary$Run),"Model Runs")) +
-    theme(axis.text = element_text(size=12,face="bold"),
-          axis.title = element_text(size=14,face="bold"),
-          plot.title = element_text(size=18, face="bold"),
-          plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
+# Natural Adult To Trap
+box_compare(raw_summary, raw_summary$Parr, "green3", "Median Parr", "Late Summer Parr")
 
-# Trap Adults Natural
-ggplot(results_summary, aes(y = TrapAdult, x = ModelName)) +
-    geom_jitter(width = 0.3, alpha = 0.3) +
-    geom_boxplot(fill = "dodgerblue3", alpha = 0.7) +
-    labs(y = "Median Adults", title = "Natural Adults to Trap", subtitle = paste(max(results_summary$Run),"Model Runs")) +
+
+####################################################
+########    RIBBON COMPARISON               ########
+####################################################
+# used to compare two model runs
+
+b1 <- summary_table %>%
+    filter(Model == 'CC-Curr') %>%
+    ggplot() +
+        geom_ribbon(aes(x = Year, ymin = SpawnerMin, ymax = SpawnerMax),alpha = 0.5, fill = "dodgerblue") +
+        geom_ribbon(aes(x = Year, ymin = Spawner25, ymax = Spawner75),  alpha = 0.5) +
+        geom_line(aes(x = Year, y = SpawnerMed), lwd = 1, alpha = 0.7) +
+        labs(y = "Natural Spawners", title = "Catherine Creek", subtitle = "Base Model") +
+        theme(axis.text = element_text(size=12,face="bold"),
+              axis.title = element_text(size=14,face="bold"),
+              plot.title = element_text(size=18, face="bold"),
+              plot.subtitle = element_text(size=14, face="bold", color = "darkgray")) +
+        scale_y_continuous(labels = comma)
+
+b2 <- summary_table %>%
+    filter(Model == 'UGR-Curr') %>%
+    ggplot() +
+    geom_ribbon(aes(x = Year, ymin = SpawnerMin, ymax = SpawnerMax),alpha = 0.5, fill = "dodgerblue") +
+    geom_ribbon(aes(x = Year, ymin = Spawner25, ymax = Spawner75),  alpha = 0.5) +
+    geom_line(aes(x = Year, y = SpawnerMed), lwd = 1, alpha = 0.7) +
+    labs(y = "Natural Spawners", title = "Upper Grande Ronde", subtitle = "Base Model") +
     theme(axis.text = element_text(size=12,face="bold"),
           axis.title = element_text(size=14,face="bold"),
           plot.title = element_text(size=18, face="bold"),
-          plot.subtitle = element_text(size=14, face="bold", color = "darkgray"))
+          plot.subtitle = element_text(size=14, face="bold", color = "darkgray")) +
+    scale_y_continuous(labels = comma)
+
+grid.arrange(b1, b2, nrow = 2)
+
 
 ####################################################
 ########    EXTINCTION THRESHOLD            ########
 ####################################################
 
 # take the median value among years for each run
-QER_table <- results_table %>%
+QER_table <- raw_table %>%
     select(ModelName, Model, Run, Year, TotalSpawner) %>%
     # cut out burn in years and final 5 years
     filter(Year >= 50 & Year <= max(Year) - 5) %>%
@@ -147,5 +163,3 @@ QER_summary <- QER_table %>%
         TotalRiskyRuns = sum(RiskyRuns),
         TotalRuns = max(Run)) %>%
     mutate(QER = TotalRiskyRuns / TotalRuns)
-
-
