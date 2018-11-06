@@ -1,7 +1,5 @@
 library(tidyverse) # for data manipulation and graphics
 
-
-
 #---------------Establish Constants------------------------#
 
 # Create variables from settings file
@@ -118,11 +116,10 @@ for (j in 1:runs) {
         sims$H1_LGDSmolt[i] <- bev_holt('HO', sims$H1_HatchRelease[i], p_HatchRelease_LGDSmolt)
         }
         
-        #######RETURNING ADULTS###########
-        #--------------LGD Adult to Trap Adult----------------#
-        sims$TrapAdult[i] <- bev_holt('NO', sims$LGDAdult[i], p_LGDAdult_TrapAdult)
+        #--------------Trap Adult Age Classes---------------#
+        sims$TrapAdult[i] <- sims$TrapAdult1[i] + sims$TrapAdult2[i] + sims$TrapAdult3[i]
         #<<----HATCH----->>#
-        sims$H1_TrapAdult[i] <- bev_holt('HO', sims$H1_LGDAdult[i], p_LGDAdult_TrapAdult)
+        sims$H1_TrapAdult[i] <- sims$H1_TrapAdult1[i] + sims$H1_TrapAdult2[i] + sims$H1_TrapAdult3[i]
     
         ############# SUPPLEMENTATION SCHEME ############################
         if (i < stop_sup) { # Turn off hatchery supplementation in year i
@@ -243,35 +240,25 @@ for (j in 1:runs) {
         
             #########OCEAN ADULTS###########
             #--------------LGD Smolts to Adult Age 1----------------#
-            choice_probs <- life_history_choices(p_LGDSmolt_LGDAdult1)
-            sims$LGDAdult1[i + 1] <-  bev_holt('NO', (sims$LGDSmolt[i] * choice_probs$prob1), p_LGDSmolt_LGDAdult1)
+            choice_probs <- life_history_choices(p_LGDSmolt_TrapAdult1)
+            sims$TrapAdult1[i + 1] <-  bev_holt('NO', (sims$LGDSmolt[i] * choice_probs$prob1), p_LGDSmolt_TrapAdult1)
             sims$OceanAdult1[i + 1] <-  bev_holt('NO', (sims$LGDSmolt[i] * choice_probs$prob2), p_LGDSmolt_OceanAdult1)
             #<<----HATCH----->>#  
-            sims$H1_LGDAdult1[i + 1] <-  bev_holt('HO', (sims$H1_LGDSmolt[i] * choice_probs$prob1), p_LGDSmolt_LGDAdult1)
+            sims$H1_TrapAdult1[i + 1] <-  bev_holt('HO', (sims$H1_LGDSmolt[i] * choice_probs$prob1), p_LGDSmolt_TrapAdult1)
             sims$H1_OceanAdult1[i + 1] <-  bev_holt('HO', (sims$H1_LGDSmolt[i] * choice_probs$prob2), p_LGDSmolt_OceanAdult1)
-            
-            
+        
             #--------------Ocean Adult 1 to Adult Age 2----------------#
-            choice_probs <- life_history_choices(p_OceanAdult1_LGDAdult2)
-            sims$LGDAdult2[i+1] <- bev_holt('NO', (sims$OceanAdult1[i] * choice_probs$prob1), p_OceanAdult1_LGDAdult2)
+            choice_probs <- life_history_choices(p_OceanAdult1_TrapAdult2)
+            sims$TrapAdult2[i+1] <- bev_holt('NO', (sims$OceanAdult1[i] * choice_probs$prob1), p_OceanAdult1_TrapAdult2)
             sims$OceanAdult2[i+1] <- bev_holt('NO', (sims$OceanAdult1[i] * choice_probs$prob2), p_OceanAdult1_OceanAdult2)
             #<<----HATCH----->>#
-            sims$H1_LGDAdult2[i+1] <- bev_holt('HO', (sims$H1_OceanAdult1[i] * choice_probs$prob1), p_OceanAdult1_LGDAdult2)
+            sims$H1_TrapAdult2[i+1] <- bev_holt('HO', (sims$H1_OceanAdult1[i] * choice_probs$prob1), p_OceanAdult1_TrapAdult2)
             sims$H1_OceanAdult2[i+1] <- bev_holt('HO', (sims$H1_OceanAdult1[i] * choice_probs$prob2), p_OceanAdult1_OceanAdult2)
       
-            
-      
             #--------------Ocean Adult 2 to LGD Adult 3----------------#
-            sims$LGDAdult3[i+1] <- bev_holt('NO', (sims$OceanAdult2[i] * p_OceanAdult2_LGDAdult3$life_history), p_OceanAdult2_LGDAdult3)
+            sims$TrapAdult3[i+1] <- bev_holt('NO', (sims$OceanAdult2[i] * p_OceanAdult2_TrapAdult3$life_history), p_OceanAdult2_TrapAdult3)
             #<<----HATCH----->>#
-            sims$H1_LGDAdult3[i+1] <- bev_holt('HO', (sims$H1_OceanAdult2[i] * p_OceanAdult2_LGDAdult3$life_history), p_OceanAdult2_LGDAdult3)
-    
-            
-            #########SUM LGD ADULTS###########
-            #--------------Natural Adults----------------#
-            sims$LGDAdult[i+1] <- sims$LGDAdult1[i+1] + sims$LGDAdult2[i+1] + sims$LGDAdult3[i+1]
-            #--------------Natural Adults----------------#
-            sims$H1_LGDAdult[i+1] <- sims$H1_LGDAdult1[i+1] + sims$H1_LGDAdult2[i+1] + sims$H1_LGDAdult3[i+1]
+            sims$H1_TrapAdult3[i+1] <- bev_holt('HO', (sims$H1_OceanAdult2[i] * p_OceanAdult2_TrapAdult3$life_history), p_OceanAdult2_TrapAdult3)
   
         } # END YEAR TRANSITIONS
     
