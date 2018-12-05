@@ -16,7 +16,14 @@ get_random_beta <- function(mean, stdev) {
     alpha <- ((1 - mean) / var - 1 / mean) * mean ^ 2
     beta <- alpha * (1 / mean - 1)
     # get the random draw from beta distribution
-    random_beta_draw <- rbeta(1, alpha, beta)
+    # use error handling incase the rbeta bombs
+    random_beta_draw <- tryCatch({
+        rbeta(1, alpha, beta)
+    }, error = function(e) {
+        mean
+    }, warning = function(w) {
+        mean
+    })
     return(random_beta_draw)
 }
 
@@ -100,7 +107,7 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
         stage2_pop = (stage1_pop / (((1/prod) + ((1/cap)*stage1_pop))))
         return(floor(stage2_pop))
         
-    # Use stochasticity on model fit
+    # Use stochasticity on model fit, note - this should only be used on survival, not fecundity
     } else if (!is.na(params$fit_sd)) {
         # multiply by the productivity scaler
         prod <- params$productivity * prod_scaler
@@ -119,6 +126,11 @@ bev_holt <- function (origin = 'NO', stage1_pop, params) {
         sd <- rnorm(1, 0, params$fit_sd)
         # and get the final estimate
         stage2_pop <- stage2_pop*exp(sd)
-        return(floor(stage2_pop))
+        # double check this didn't produce more fish than we started with
+        if (stage2_pop > stage1_pop) {
+            return(stage1_pop)
+        } else {
+            return(floor(stage2_pop))
+        }
     }
 }

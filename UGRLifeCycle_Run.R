@@ -16,7 +16,7 @@ if (stochasticity == 'OFF') {
     input$Productivity_SD = 0
     input$Capacity_SD = 0
     input$Life_History_SD = 0
-    input$Fit_SD = 0
+    input$Fit_SD = NA
 }
 
 
@@ -35,6 +35,25 @@ for (i in 1:nrow(input)) {
                                                                 "hatchery_prod_scaler" = input$Hatchery_Prod_Scaler[i],
                                                                 "natural_cap_scaler" = input$Natural_Cap_Scaler[i],
                                                                 "hatchery_cap_scaler" = input$Hatchery_Cap_Scaler[i]))
+}
+
+
+# NOTE you only need to pay attention to this if doing sensitivity analysis
+# ALSO NOTE - you have to manually change the parameter you are interested in having change
+# TODO find a more elegant solution to running sensitivity analyses
+if (exists("sensitivity_on")) {
+    if (sensitivity_param == "p") {
+        # p_PassedAdult_Spawner$natural_prod_scaler <- p_PassedAdult_Spawner$natural_prod_scaler * sensitivity_scaler[s]
+        # p_PassedAdult_Spawner$hatchery_prod_scaler <- p_PreSmoltValley_LGDSmolt$hatchery_prod_scaler * sensitivity_scaler[s]
+        p_LGDSmolt_TrapAdult1$productivity <- sensitivity_scaler[s]
+        p_LGDSmolt_OceanAdult1$productivity <- sensitivity_scaler[s]
+        p_OceanAdult1_TrapAdult2$productivity <- sensitivity_scaler[s]
+        p_OceanAdult1_OceanAdult2$productivity <- sensitivity_scaler[s]
+        p_OceanAdult2_TrapAdult3$productivity <- sensitivity_scaler[s]
+    } else {
+        p_PassedAdult_Spawner$natural_cap_scaler <- p_PassedAdult_Spawner$natural_cap_scaler * sensitivity_scaler[s]
+        p_PassedAdult_Spawner$hatchery_cap_scaler <-p_PassedAdult_Spawner$hatchery_cap_scaler * sensitivity_scaler[s]
+    }
 }
 
 # Supplementation goal based on population as total brood retention
@@ -59,7 +78,7 @@ for (i in 1:length(stages)) {
 }
 
 # Add model run qualifiers
-stages <- c("ModelName", "Model", "Rep", "Year", "Run", stages, my_hatch)
+stages <- c("ModelName", "Model", "Scenario", "Population", "Year", "Run", stages, my_hatch)
 # Delete any stages not needed
 stages <- stages[stages != "HatchRelease"]
 
@@ -72,14 +91,11 @@ names(sims) <- stages
 
 # Clean up
 rm(my_hatch)
-rm(input)
-rm(settings)
 rm(stages)
 
 ########################################
 ####     START MODEL LOOPS         #####
 ########################################
-
 
 
 # Loops for runs
@@ -96,12 +112,9 @@ for (j in 1:runs) {
     
         # Run years and fill model qualifiers
         sims$Year[i] <- i
-        sims$ModelName[i] <- model_name
-        sims$Model[i] <- model
-        
         
         ##########################################
-        #####        WITHIN YEAR             ##### 
+        #####        WITHIN YEAR             #####
         ##########################################
     
         #--------------PreSmolts to LGD Smolts----------------#
@@ -293,4 +306,8 @@ for (j in 1:runs) {
 # Some final accounting
 
 final <- final %>%
-    mutate(TotalTrap = TrapAdult + H1_TrapAdult)
+    mutate(TotalTrap = TrapAdult + H1_TrapAdult,
+           ModelName = model_name,
+           Model = model,
+           Population = population,
+           Scenario = scenario)

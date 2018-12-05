@@ -3,7 +3,6 @@ library(VGAM) # positive only normal distribution function
 library(tidyverse) # summary and graphics
 library(tcltk) # for folder selection
 
-
 # 1---------------LOAD FUNCTIONS------------------------------------#
 source("UGRLifeCycle_Functions.R")
 

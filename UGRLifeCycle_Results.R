@@ -30,16 +30,16 @@ for (i in 2:length(scenario_dirs)) {
 }
 
 
+######################################################################################
+########    Create a Table of Just Natural Spawner Abundances min, max, etc...########
+######################################################################################
 
-####################################################
-########    BOXPLOT MODEL COMPARISON        ########
-####################################################
 # take the median value among years for each run
 raw_summary <- raw_table %>%
-    select(ModelName, Model, Year, Run, Egg, Parr, LGDSmolt, H1_LGDSmolt, TrapAdult, H1_TrapAdult, Brood, TotalTrap, H1_Brood, Spawner, H1_Spawner, TotalSpawner) %>%
-    # cut out burn in years and final 5 years
-    filter(Year >= 40 & Year <= max(Year) - 5) %>%
-    group_by(ModelName, Model, Run) %>%
+    select(ModelName, Model, Population, Scenario, Year, Run, Egg, Parr, LGDSmolt, H1_LGDSmolt, TrapAdult, H1_TrapAdult, Brood, TotalTrap, H1_Brood, Spawner, H1_Spawner, TotalSpawner) %>%
+    # cut out burn in years and final years, shoot for 50 years
+    filter(Year >= 40 & Year <= max(Year) - 10) %>%
+    group_by(ModelName, Population, Scenario, Model, Run) %>%
     # get median for list stages by run
     summarise(
         Egg = median(Egg),
@@ -54,12 +54,37 @@ raw_summary <- raw_table %>%
         TotalSpawner = median(TotalSpawner)
         )
 
+# Final spawner table, which is summary of median values
+# this will get written out for table in report
+spawner_table <- raw_summary %>%
+    group_by(ModelName, Population, Scenario, Model) %>%
+        summarise(spawnerMin = min(Spawner),
+                  spawnerMed = median(Spawner),
+                  spawnerMax = max(Spawner),
+                  spawnerSD = sd(Spawner)) %>%
+        mutate(supplementation = "Off")
 
+# write out spawner table results
+pop <- as.character(spawner_table$Population[1])
+write.csv(spawner_table, file=paste(results_dir, "/",pop,"_spawners.csv", sep=""))
+
+
+####################################################
+########    BOXPLOT MODEL COMPARISON        ########
+####################################################
+# 1000 X 500 px
+# CC = seagreen
+# UGR = steelblue
+
+# Order factors for boxplots
+raw_summary$Scenario <- factor(raw_summary$Scenario, levels = c('Curr', 'Clim', 'ClimVeg', 'ClimVegWid'))
+
+# the boxplot function
 box_compare <- function(data, stage, fill_color, y_label, plot_title) {
-    ggplot(data, aes(y = stage, x = ModelName)) +
+    ggplot(data, aes(y = stage, x = Scenario)) +
         geom_jitter(width = 0.3, alpha = 0.3) +
         geom_boxplot(fill = fill_color, alpha = 0.7) +
-        labs(y = y_label, title = plot_title, subtitle = paste(max(raw_summary$Run),"Model Runs")) +
+        labs(y = y_label, title = plot_title, subtitle = "Justice 2007 - Cease Supplementation") +
         theme(axis.text = element_text(size=12,face="bold"),
               axis.title = element_text(size=14,face="bold"),
               plot.title = element_text(size=18, face="bold"),
@@ -74,55 +99,27 @@ box_compare(raw_summary, raw_summary$Parr, "green3", "Median Parr", "Late Summer
 box_compare(raw_summary, raw_summary$LGDSmolt, "coral3", "Median Smolt", "Natural Smolt at LGD")
 
 # Natural Spawners
-box_compare(raw_summary, raw_summary$Spawner, "dodgerblue", "Median Spawners", "Natural Spawners")
+ugr_box <-
+# cc_box <-
+box_compare(raw_summary, raw_summary$Spawner, "seagreen", "Median Natural Spawners", "Catherine Creek")
 
 # Natural Adult To Trap
 box_compare(raw_summary, raw_summary$Parr, "green3", "Median Parr", "Late Summer Parr")
 
 
-####################################################
-########    RIBBON COMPARISON               ########
-####################################################
-# used to compare two model runs
-
-b1 <- summary_table %>%
-    filter(Model == 'CC-Curr') %>%
-    ggplot() +
-        geom_ribbon(aes(x = Year, ymin = SpawnerMin, ymax = SpawnerMax),alpha = 0.5, fill = "dodgerblue") +
-        geom_ribbon(aes(x = Year, ymin = Spawner25, ymax = Spawner75),  alpha = 0.5) +
-        geom_line(aes(x = Year, y = SpawnerMed), lwd = 1, alpha = 0.7) +
-        labs(y = "Natural Spawners", title = "Catherine Creek", subtitle = "Base Model") +
-        theme(axis.text = element_text(size=12,face="bold"),
-              axis.title = element_text(size=14,face="bold"),
-              plot.title = element_text(size=18, face="bold"),
-              plot.subtitle = element_text(size=14, face="bold", color = "darkgray")) +
-        scale_y_continuous(labels = comma)
-
-b2 <- summary_table %>%
-    filter(Model == 'UGR-Curr') %>%
-    ggplot() +
-    geom_ribbon(aes(x = Year, ymin = SpawnerMin, ymax = SpawnerMax),alpha = 0.5, fill = "dodgerblue") +
-    geom_ribbon(aes(x = Year, ymin = Spawner25, ymax = Spawner75),  alpha = 0.5) +
-    geom_line(aes(x = Year, y = SpawnerMed), lwd = 1, alpha = 0.7) +
-    labs(y = "Natural Spawners", title = "Upper Grande Ronde", subtitle = "Base Model") +
-    theme(axis.text = element_text(size=12,face="bold"),
-          axis.title = element_text(size=14,face="bold"),
-          plot.title = element_text(size=18, face="bold"),
-          plot.subtitle = element_text(size=14, face="bold", color = "darkgray")) +
-    scale_y_continuous(labels = comma)
-
-grid.arrange(b1, b2, nrow = 2)
+# Save the plot for later to merge with the one from Cathrine Creek
+ 
 
 
 ####################################################
 ########    EXTINCTION THRESHOLD            ########
 ####################################################
 
-# take the median value among years for each run
+# Mark spawners with respect to 50, the threshold
 QER_table <- raw_table %>%
-    select(ModelName, Model, Run, Year, TotalSpawner) %>%
+    select(ModelName, Model, Scenario, Population, Run, Year, TotalSpawner) %>%
     # cut out burn in years and final 5 years
-    filter(Year >= 50 & Year <= max(Year) - 5) %>%
+    filter(Year >= 40 & Year <= max(Year) - 10) %>%
     # create risk with risky = 1, not-risky = 0
     mutate(Risk = ifelse(TotalSpawner > 50, 0, 1)) %>%
     # create blank column for running risk total  %>%
@@ -153,13 +150,51 @@ for (i in 2:nrow(QER_table)) {
 
 # QER Summary
 QER_summary <- QER_table %>%
-    group_by(ModelName, Model, Run) %>%
+    group_by(ModelName, Scenario, Population, Model, Run) %>%
     summarise(
         TotalRisk = sum(Risk),
         MaxRisk = max(RunningRisk)) %>%
     mutate(RiskyRuns = ifelse(MaxRisk > 3, 1, 0)) %>%
-    group_by(ModelName, Model) %>%
+    group_by(ModelName, Scenario, Population, Model) %>%
     summarise(
         TotalRiskyRuns = sum(RiskyRuns),
         TotalRuns = max(Run)) %>%
     mutate(QER = TotalRiskyRuns / TotalRuns)
+
+
+# write out the QER table to directory
+write.csv(QER_summary, file=paste(results_dir, "/",pop,"_QER.csv", sep=""))
+
+
+####################################################
+########    RIBBON COMPARISON               ########
+####################################################
+# used to compare two model runs, place in seperate folder
+
+b1 <- summary_table %>%
+    filter(Model == 'CC-Curr') %>%
+    ggplot() +
+    geom_ribbon(aes(x = Year, ymin = SpawnerMin, ymax = SpawnerMax),alpha = 0.5, fill = "dodgerblue") +
+    geom_ribbon(aes(x = Year, ymin = Spawner25, ymax = Spawner75),  alpha = 0.5) +
+    geom_line(aes(x = Year, y = SpawnerMed), lwd = 1, alpha = 0.7) +
+    labs(y = "Natural Spawners", title = "Catherine Creek", subtitle = "Base Model") +
+    theme(axis.text = element_text(size=12,face="bold"),
+          axis.title = element_text(size=14,face="bold"),
+          plot.title = element_text(size=18, face="bold"),
+          plot.subtitle = element_text(size=14, face="bold", color = "darkgray")) +
+    scale_y_continuous(labels = comma)
+
+b2 <- summary_table %>%
+    filter(Model == 'UGR-Curr') %>%
+    ggplot() +
+    geom_ribbon(aes(x = Year, ymin = SpawnerMin, ymax = SpawnerMax),alpha = 0.5, fill = "dodgerblue") +
+    geom_ribbon(aes(x = Year, ymin = Spawner25, ymax = Spawner75),  alpha = 0.5) +
+    geom_line(aes(x = Year, y = SpawnerMed), lwd = 1, alpha = 0.7) +
+    labs(y = "Natural Spawners", title = "Upper Grande Ronde", subtitle = "Base Model") +
+    theme(axis.text = element_text(size=12,face="bold"),
+          axis.title = element_text(size=14,face="bold"),
+          plot.title = element_text(size=18, face="bold"),
+          plot.subtitle = element_text(size=14, face="bold", color = "darkgray")) +
+    scale_y_continuous(labels = comma)
+
+grid.arrange(b1, b2, nrow = 2)
